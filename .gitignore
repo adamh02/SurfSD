@@ -1,0 +1,7 @@
+node_modules/
+surfsd.sqlite
+.env
+.idea/
+*.iml
+public/uploads/*
+!public/uploads/.gitkeep

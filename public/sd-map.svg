@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" role="img" aria-label="Stylized San Diego coastal surf map">
+  <defs>
+    <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dff5fb"/>
+      <stop offset="1" stop-color="#a9ddeb"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8faf4"/>
+      <stop offset="1" stop-color="#e4efd9"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="10" flood-color="#4c6b73" flood-opacity=".16"/>
+    </filter>
+  </defs>
+  <rect width="900" height="1200" fill="url(#ocean)"/>
+  <path d="M475 0 C500 70 485 125 515 188 C544 250 545 290 525 352 C502 425 521 498 498 560 C465 650 491 727 457 804 C432 862 440 935 395 1015 C358 1082 360 1138 332 1200 L900 1200 L900 0 Z" fill="url(#land)" filter="url(#softShadow)"/>
+  <path d="M475 0 C500 70 485 125 515 188 C544 250 545 290 525 352 C502 425 521 498 498 560 C465 650 491 727 457 804 C432 862 440 935 395 1015 C358 1082 360 1138 332 1200" fill="none" stroke="#ffffff" stroke-width="16" stroke-linecap="round"/>
+  <path d="M475 0 C500 70 485 125 515 188 C544 250 545 290 525 352 C502 425 521 498 498 560 C465 650 491 727 457 804 C432 862 440 935 395 1015 C358 1082 360 1138 332 1200" fill="none" stroke="#79b8c2" stroke-width="3" stroke-linecap="round"/>
+  <path d="M610 0 C640 120 610 205 635 305 C660 405 635 520 655 635 C677 770 616 894 610 1025 C606 1098 584 1150 570 1200" fill="none" stroke="#f4b64d" stroke-width="10" stroke-linecap="round" opacity=".95"/>
+  <path d="M655 0 C680 115 664 220 690 340 C720 470 688 594 710 730 C735 872 700 1010 704 1200" fill="none" stroke="#ffffff" stroke-width="7" stroke-linecap="round" opacity=".9"/>
+  <path d="M660 0 C685 115 669 220 695 340 C725 470 693 594 715 730 C740 872 705 1010 709 1200" fill="none" stroke="#d4dde0" stroke-width="2" stroke-linecap="round"/>
+  <path d="M555 72 L820 88 M560 220 L826 260 M548 372 L812 430 M520 535 L820 560 M498 710 L772 745 M454 895 L760 945 M398 1055 L705 1125" stroke="#d9e4de" stroke-width="4" stroke-linecap="round"/>
+  <g font-family="Inter, Arial, sans-serif" fill="#5d7378">
+    <text x="640" y="132" font-size="28" font-weight="700">Oceanside</text>
+    <text x="650" y="270" font-size="24" font-weight="700">Carlsbad</text>
+    <text x="620" y="430" font-size="24" font-weight="700">Encinitas</text>
+    <text x="610" y="590" font-size="24" font-weight="700">Del Mar</text>
+    <text x="580" y="742" font-size="24" font-weight="700">La Jolla</text>
+    <text x="525" y="902" font-size="24" font-weight="700">Pacific Beach</text>
+    <text x="465" y="1062" font-size="24" font-weight="700">Ocean Beach</text>
+    <text x="90" y="130" font-size="32" font-weight="800" fill="#27889a">Pacific Ocean</text>
+    <text x="670" y="72" font-size="18" font-weight="800" fill="#d88925">I-5</text>
+  </g>
+  <g fill="none" stroke="#ffffff" stroke-width="2" opacity=".55">
+    <path d="M110 210 C180 240 240 230 300 260"/>
+    <path d="M80 380 C160 410 235 395 320 430"/>
+    <path d="M75 620 C150 650 230 642 300 682"/>
+    <path d="M60 835 C130 865 208 850 275 895"/>
+  </g>
+</svg>

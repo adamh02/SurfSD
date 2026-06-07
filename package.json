@@ -1,0 +1,13 @@
+{
+  "name": "surfsd",
+  "version": "1.0.0",
+  "description": "SurfSD full-stack MVP for San Diego surf reports.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

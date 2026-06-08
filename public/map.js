@@ -12,15 +12,22 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const markerIcon = L.divIcon({
     className: "surf-marker",
-    html: "<span></span>",
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: "",
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
     popupAnchor: [0, -12]
   });
 
+  const markerBounds = [];
+
   spots.forEach((spot) => {
+    markerBounds.push([spot.latitude, spot.longitude]);
     L.marker([spot.latitude, spot.longitude], { icon: markerIcon })
       .addTo(map)
       .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}<br><a href="/spots/${spot.slug}">View</a>`);
   });
+
+  if (markerBounds.length) {
+    map.fitBounds(markerBounds, { padding: [40, 40], maxZoom: 10 });
+  }
 });

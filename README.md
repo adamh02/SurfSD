@@ -1,17 +1,17 @@
-# SurfSD
+## What is SurfSD?
 
-SurfSD is a simple full-stack MVP for a San Diego surf community app. Surfers can browse a local spot map, create an account, and post current condition reports with a short description, wave height, optional rating, and optional image.
+SurfSD is a simple full stack San Diego surf report app. Most surfers want to see the active boots on ground surf report rather than looking on a cam that doesnt really show you whats going on that well, so on SurfSD surfers can browse a local spot map, create an account, and post current condition reports with a short description, wave height, optional rating, and optional image/video showing active live updated surf reports for all San Diego beaches.
 
 ## Stack
 
 - Native Node.js HTTP server
 - Native Node.js SQLite database
-- Server-rendered HTML templates
-- Signed HTTP-only session cookies
+- Server rendered HTML templates
+- Signed HTTP only session cookies
 - Leaflet map via CDN
-- Node's built-in test runner
+- Node's built in test runner
 
-The current environment does not include `npm`, so this MVP avoids external packages. Passwords are salted and hashed with Node's built-in `crypto.scrypt`, a strong password hashing KDF. If package installation becomes available later, the auth helper can be swapped to bcrypt or argon2.
+The current environment does not include `npm`, so I avoided external packages. Passwords are salted and hashed with Node's built-in `crypto.scrypt`.
 
 ## Run
 
@@ -30,11 +30,11 @@ node --test
 
 ## Main Pages
 
-- `/map`: interactive San Diego surf spot map with placeholder stats.
-- `/about`: overview of the SurfSD MVP.
-- `/account`: signup, login, logout, and account view.
-- `/spots/swamis`: example surf spot page.
-- `/spots/:slug/reports/new`: protected create-report form.
+- `/map`: Interactive local surf spot map. (New surf spots still being added).
+- `/about`: Overview description of the purpose of SurfSD.
+- `/account`: Signup, login, logout, and account view (still being worked on).
+- `/spots/swamis`: Example of one of our surf spot pages.
+- `/spots/:slug/reports/new`: Create report form.
 
 ## Data Models
 

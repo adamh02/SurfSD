@@ -131,6 +131,7 @@ function reportCard(report) {
       <div class="meta">
         <span>${escapeHtml(report.waveHeight)} ft</span>
         ${report.rating ? `<span>${escapeHtml(report.rating)}/10</span>` : `<span>No rating</span>`}
+        <span>${escapeHtml(formatDateTime(report.createdAt))}</span>
         <span>${escapeHtml(report.userName)}</span>
       </div>
     </div>
@@ -165,4 +166,14 @@ export function escapeHtml(value = "") {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
 }

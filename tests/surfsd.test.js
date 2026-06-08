@@ -165,6 +165,7 @@ test("logged-in users can create a surf report", async () => {
 
     const spotPage = await client.get("/spots/swamis");
     assert.match(spotPage.text, /Clean lines and patient sets./);
+    assert.match(spotPage.text, /[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)/);
   } finally {
     await client.cleanup();
   }

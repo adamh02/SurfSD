@@ -18,7 +18,9 @@ export function layout({ title, user, body, flash = "" }) {
   </head>
   <body>
     <header class="site-header">
-      <a class="brand" href="/map">SurfSD</a>
+      <a class="brand" href="/map" aria-label="SurfSD map">
+        <img src="/surfsd-logo.png" alt="SurfSD">
+      </a>
       <nav>
         <a href="/map">Map</a>
         <a href="/about">About</a>
@@ -38,10 +40,9 @@ export function aboutPage(context) {
     title: "About",
     body: `<section class="page-band">
       <div class="content narrow">
-        <p class="eyebrow">San Diego surf community</p>
-        <h1>SurfSD helps surfers share what the coast looks like right now.</h1>
-        <p class="lead">This MVP is a San Diego surf spot map where surfers can view local breaks and post current condition reports with a photo, wave height, rating, and short field note.</p>
-        <p>For now, swell, tide, and weather details are placeholders. Later, those panels can become richer as the map zooms into specific neighborhoods and surf zones.</p>
+        <h1>What is SurfSD?</h1>
+        <p class="lead">SurfSD is a San Diego live updated surf report platform where local surfers can publish surf reports with ratings, wave height, and pictures/videos of how the surf is doing at any specific spot. This is an active ongoing project by a fellow San Diego surfer who wants to make local conditions more accessible, sometimes the live cameras or swell charts just don't cut it. In the future we plan to expand globally but for now this is a San Diego exclusive platform!</p>
+        <img class="about-logo" src="/surfsd-logo.png" alt="SurfSD logo">
       </div>
     </section>`
   });

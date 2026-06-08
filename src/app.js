@@ -23,7 +23,8 @@ export function createApp(options = {}) {
         url.pathname.startsWith("/uploads/") ||
         url.pathname === "/styles.css" ||
         url.pathname === "/map.js" ||
-        url.pathname === "/sd-map.svg"
+        url.pathname === "/sd-map.svg" ||
+        url.pathname === "/surfsd-logo.png"
       ) {
         if (serveStatic(request, response)) return;
       }

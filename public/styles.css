@@ -40,10 +40,16 @@ a {
 }
 
 .brand {
-  color: var(--sea);
-  font-size: 1.45rem;
-  font-weight: 800;
+  align-items: center;
+  display: inline-flex;
   text-decoration: none;
+}
+
+.brand img {
+  display: block;
+  height: 58px;
+  object-fit: contain;
+  width: auto;
 }
 
 nav {
@@ -122,6 +128,13 @@ h2 {
 .lead {
   color: var(--kelp);
   font-size: 1.2rem;
+}
+
+.about-logo {
+  display: block;
+  margin: 34px auto 0;
+  max-width: min(520px, 100%);
+  width: 100%;
 }
 
 .auth-grid {
@@ -349,5 +362,9 @@ textarea {
     left: 12px;
     max-width: none;
     right: 12px;
+  }
+
+  .brand img {
+    height: 46px;
   }
 }

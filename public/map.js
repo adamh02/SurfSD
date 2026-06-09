@@ -3,6 +3,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!mapElement || !window.L) return;
 
   const spots = JSON.parse(mapElement.dataset.spots || "[]");
+  const mapShell = mapElement.closest(".map-shell");
   const map = L.map(mapElement, { scrollWheelZoom: true }).setView([32.92, -117.28], 10);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -30,4 +31,10 @@ window.addEventListener("DOMContentLoaded", () => {
   if (markerBounds.length) {
     map.fitBounds(markerBounds, { padding: [40, 40], maxZoom: 10 });
   }
+
+  const hidePanels = () => {
+    mapShell?.classList.add("map-panels-hidden");
+  };
+
+  map.on("click dragstart zoomstart popupopen", hidePanels);
 });

@@ -187,9 +187,13 @@ textarea {
   border-radius: 8px;
   left: clamp(14px, 3vw, 36px);
   max-width: 330px;
+  opacity: 1;
   padding: 16px;
+  pointer-events: none;
   position: absolute;
   top: 24px;
+  transition: opacity 160ms ease, visibility 160ms ease;
+  visibility: visible;
   z-index: 5;
 }
 
@@ -234,10 +238,20 @@ textarea {
   bottom: 24px;
   color: var(--white);
   max-width: 260px;
+  opacity: 1;
   padding: 16px;
+  pointer-events: none;
   position: absolute;
   right: 24px;
+  transition: opacity 160ms ease, visibility 160ms ease;
+  visibility: visible;
   z-index: 5;
+}
+
+.map-panels-hidden .map-copy,
+.map-panels-hidden .stats-panel {
+  opacity: 0;
+  visibility: hidden;
 }
 
 .stats-panel span {

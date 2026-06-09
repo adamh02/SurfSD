@@ -41,7 +41,9 @@ export function aboutPage(context) {
     body: `<section class="page-band">
       <div class="content narrow">
         <h1>What is SurfSD?</h1>
-        <p class="lead">SurfSD is a San Diego live updated surf report platform where local surfers can publish surf reports with ratings, wave height, and pictures/videos of how the surf is doing at any specific spot. This is an active ongoing project by a fellow San Diego surfer who wants to make local conditions more accessible, sometimes the live cameras or swell charts just don't cut it. In the future we plan to expand globally but for now this is a San Diego exclusive platform!</p>
+        <p class="lead">SurfSD is a community driven surf reporting platform built specifically for San Diego surfers. The platform allows users to post real time surf reports, including wave ratings, estimated wave heights, photos, and videos from local surf spots across the county.</p>
+        <p class="lead">The goal of SurfSD is to make current surf conditions more accessible through firsthand reports from the people actually in the water. While surf cams and swell forecasts are valuable tools, they don't always tell the full story. SurfSD bridges that gap by providing live, crowd sourced updates from local surfers.</p>
+        <p class="lead">Currently focused exclusively on San Diego, SurfSD is an active and evolving project with plans to expand to surf communities around the world in the future.</p>
         <img class="about-logo" src="/surfsd-logo.png" alt="SurfSD logo">
       </div>
     </section>`

@@ -1,6 +1,7 @@
 node_modules/
 surfsd.sqlite
 .env
+.DS_Store
 .idea/
 *.iml
 public/uploads/*

@@ -322,13 +322,15 @@ textarea {
   overflow: hidden;
 }
 
-.report-card img {
+.report-card img,
+.report-video {
   aspect-ratio: 4 / 3;
+  background: #071f29;
   object-fit: cover;
   width: 100%;
 }
 
-.report-photo-placeholder {
+.report-media-placeholder {
   align-items: center;
   aspect-ratio: 4 / 3;
   background: #e6f2f0;
@@ -338,7 +340,7 @@ textarea {
   justify-content: center;
 }
 
-.report-card > div:not(.report-photo-placeholder) {
+.report-card > div:not(.report-media-placeholder) {
   padding: 14px;
 }
 

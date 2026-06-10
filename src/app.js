@@ -6,9 +6,11 @@ import { login, requireUser, signup, validateLogin, validateSignup } from "./aut
 import { destroySession, readSession, writeSession } from "./session.js";
 import { aboutPage, accountPage, mapPage, reportFormPage, spotPage } from "./views.js";
 import { validateReport } from "./validation.js";
+import { getSpotConditions, placeholderConditions } from "./conditions.js";
 
 export function createApp(options = {}) {
   openDatabase(options.databasePath || config.databasePath);
+  const conditionsProvider = options.conditionsProvider || getSpotConditions;
 
   return http.createServer(async (request, response) => {
     decorateResponse(response);
@@ -48,7 +50,7 @@ export function createApp(options = {}) {
       }
 
       const spotMatch = url.pathname.match(/^\/spots\/([^/]+)$/);
-      if (request.method === "GET" && spotMatch) return handleSpotPage(request, response, spotMatch[1]);
+      if (request.method === "GET" && spotMatch) return handleSpotPage(request, response, spotMatch[1], conditionsProvider);
 
       const newReportMatch = url.pathname.match(/^\/spots\/([^/]+)\/reports\/new$/);
       if (request.method === "GET" && newReportMatch) return handleNewReport(request, response, newReportMatch[1]);
@@ -99,11 +101,12 @@ async function handleLogin(request, response) {
   response.redirect(form.next || "/account");
 }
 
-function handleSpotPage(request, response, slug, error = "") {
+async function handleSpotPage(request, response, slug, conditionsProvider, error = "") {
   const spot = findSurfSpotBySlug(slug);
   if (!spot) return response.notFound();
   const reports = listReportsForSpot(spot.id);
-  response.html(spotPage({ user: request.user, spot, reports, error }));
+  const conditions = await conditionsProvider(spot).catch(() => placeholderConditions());
+  response.html(spotPage({ user: request.user, spot, reports, conditions, error }));
 }
 
 function handleNewReport(request, response, slug) {

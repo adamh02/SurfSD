@@ -100,7 +100,7 @@ export function mapPage(context) {
   });
 }
 
-export function spotPage({ user, spot, reports, error = "" }) {
+export function spotPage({ user, spot, reports, conditions, error = "" }) {
   return layout({
     title: spot.name,
     user,
@@ -112,9 +112,9 @@ export function spotPage({ user, spot, reports, error = "" }) {
         <h1>${escapeHtml(spot.name)}</h1>
         <p>${escapeHtml(spot.description)}</p>
         <div class="condition-strip">
-          <span><strong>Swell</strong> 3-4 ft W</span>
-          <span><strong>Tide</strong> Mid rising</span>
-          <span><strong>Weather</strong> 68 F</span>
+          <span><strong>Swell</strong> ${escapeHtml(conditions.swell)}</span>
+          <span><strong>Tide</strong> ${escapeHtml(conditions.tide)}</span>
+          <span><strong>Weather</strong> ${escapeHtml(conditions.weather)}</span>
         </div>
         <a class="button" href="/spots/${escapeHtml(spot.slug)}/reports/new">+ Create Report</a>
       </div>
@@ -128,17 +128,25 @@ export function spotPage({ user, spot, reports, error = "" }) {
 
 function reportCard(report) {
   return `<article class="report-card">
-    ${report.imageUrl ? `<img src="${escapeHtml(report.imageUrl)}" alt="Surf report photo">` : `<div class="report-photo-placeholder">No photo</div>`}
+    ${report.imageUrl ? reportMedia(report.imageUrl) : `<div class="report-media-placeholder">No video</div>`}
     <div>
       <p>${escapeHtml(report.description)}</p>
       <div class="meta">
         <span>${escapeHtml(report.waveHeight)} ft</span>
         ${report.rating ? `<span>${escapeHtml(report.rating)}/10</span>` : `<span>No rating</span>`}
-        <span>${escapeHtml(formatDateTime(report.createdAt))}</span>
+        <span>${escapeHtml(formatRelativeTime(report.createdAt))}</span>
         <span>${escapeHtml(report.userName)}</span>
       </div>
     </div>
   </article>`;
+}
+
+function reportMedia(mediaUrl) {
+  const escapedUrl = escapeHtml(mediaUrl);
+  if (/\.(mp4|webm|mov)$/i.test(mediaUrl)) {
+    return `<video class="report-video" controls preload="metadata" src="${escapedUrl}"></video>`;
+  }
+  return `<img src="${escapedUrl}" alt="Surf report media">`;
 }
 
 export function reportFormPage({ user, spot, error = "", values = {} }) {
@@ -149,7 +157,7 @@ export function reportFormPage({ user, spot, error = "", values = {} }) {
     body: `<section class="page-band"><form class="content narrow panel" method="post" enctype="multipart/form-data" action="/spots/${escapeHtml(spot.slug)}/reports">
       <p class="eyebrow">${escapeHtml(spot.name)}</p>
       <h1>Create surf report</h1>
-      <label>Photo (Optional)<input type="file" name="photo" accept="image/jpeg,image/png,image/webp,image/gif"></label>
+      <label>Video (Optional)<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime"></label>
       <label>Description<textarea name="description" maxlength="280" required>${escapeHtml(values.description || "")}</textarea></label>
       <label>Wave Height (Feet)<input type="number" name="waveHeight" min="1" max="100" value="${escapeHtml(values.waveHeight || "")}" required></label>
       <label>Rating, 1-10 (Optional)<input type="number" name="rating" min="1" max="10" value="${escapeHtml(values.rating || "")}"></label>
@@ -171,12 +179,26 @@ function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
-function formatDateTime(value) {
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(new Date(value));
+function formatRelativeTime(value) {
+  const date = parseSqliteDate(value);
+  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  if (seconds < 60) return "just now";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+
+  return formatDate(value);
+}
+
+function parseSqliteDate(value) {
+  if (typeof value === "string" && !value.includes("T")) {
+    return new Date(`${value.replace(" ", "T")}Z`);
+  }
+  return new Date(value);
 }

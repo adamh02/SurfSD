@@ -5,12 +5,20 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createApp } from "../src/app.js";
+import { formatCurrentTide } from "../src/conditions.js";
 import { closeDatabase, findUserByEmail, getDatabase } from "../src/db.js";
 import { resetSessions } from "../src/session.js";
 
 function createTestClient() {
   const databasePath = path.join(os.tmpdir(), `surfsd-${Date.now()}-${Math.random()}.sqlite`);
-  const app = createApp({ databasePath });
+  const app = createApp({
+    databasePath,
+    conditionsProvider: async () => ({
+      swell: "Test swell",
+      tide: "Test tide",
+      weather: "Test weather"
+    })
+  });
   let cookie = "";
 
   async function request(method, pathname, { body, headers = {} } = {}) {
@@ -77,7 +85,7 @@ function createTestClient() {
         chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`);
       }
       if (file) {
-        chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="photo"; filename="${file.filename}"\r\nContent-Type: ${file.type}\r\n\r\n`);
+        chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="video"; filename="${file.filename}"\r\nContent-Type: ${file.type}\r\n\r\n`);
         chunks.push(file.body.toString("binary"));
         chunks.push("\r\n");
       }
@@ -147,15 +155,15 @@ test("logged-in users can create a surf report", async () => {
       next: "/account"
     });
 
-    const png = Buffer.from("89504e470d0a1a0a", "hex");
+    const mp4 = Buffer.from("00000018667479706d703432000000006d703432", "hex");
     const { response } = await client.postMultipart("/spots/swamis/reports", {
       description: "Clean lines and patient sets.",
       waveHeight: "4",
       rating: "8"
     }, {
-      filename: "report.png",
-      type: "image/png",
-      body: png
+      filename: "report.mp4",
+      type: "video/mp4",
+      body: mp4
     });
     assert.equal(response.status, 303);
 
@@ -165,7 +173,7 @@ test("logged-in users can create a surf report", async () => {
 
     const spotPage = await client.get("/spots/swamis");
     assert.match(spotPage.text, /Clean lines and patient sets./);
-    assert.match(spotPage.text, /[A-Z][a-z]{2} \d{1,2}, \d{4}, \d{1,2}:\d{2} (AM|PM)/);
+    assert.match(spotPage.text, /(just now|\d+ minutes ago)/);
   } finally {
     await client.cleanup();
   }
@@ -181,15 +189,15 @@ test("report form validation rejects bad input", async () => {
       next: "/account"
     });
 
-    const png = Buffer.from("89504e470d0a1a0a", "hex");
+    const mp4 = Buffer.from("00000018667479706d703432000000006d703432", "hex");
     const { response, text } = await client.postMultipart("/spots/swamis/reports", {
       description: "Bad",
       waveHeight: "101",
       rating: "0"
     }, {
-      filename: "report.png",
-      type: "image/png",
-      body: png
+      filename: "report.mp4",
+      type: "video/mp4",
+      body: mp4
     });
 
     assert.equal(response.status, 422);
@@ -211,15 +219,15 @@ test("report form allows wave heights up to 100 feet", async () => {
       next: "/account"
     });
 
-    const png = Buffer.from("89504e470d0a1a0a", "hex");
+    const mp4 = Buffer.from("00000018667479706d703432000000006d703432", "hex");
     const { response } = await client.postMultipart("/spots/swamis/reports", {
       description: "Huge but still valid in the form.",
       waveHeight: "100",
       rating: "9"
     }, {
-      filename: "report.png",
-      type: "image/png",
-      body: png
+      filename: "report.mp4",
+      type: "video/mp4",
+      body: mp4
     });
 
     assert.equal(response.status, 303);
@@ -230,7 +238,7 @@ test("report form allows wave heights up to 100 feet", async () => {
   }
 });
 
-test("report form allows optional photo and rating", async () => {
+test("report form allows optional video and rating", async () => {
   const client = createTestClient();
   try {
     await client.postForm("/signup", {
@@ -252,9 +260,36 @@ test("report form allows optional photo and rating", async () => {
     assert.equal(reports[0].rating, null);
 
     const spotPage = await client.get("/spots/swamis");
-    assert.match(spotPage.text, /No photo/);
+    assert.match(spotPage.text, /No video/);
     assert.match(spotPage.text, /No rating/);
   } finally {
     await client.cleanup();
   }
 });
+
+test("tide conditions show current feet and rising trend", () => {
+  const now = new Date("2026-06-09T12:06:00");
+  const previous = new Date("2026-06-09T12:00:00");
+  const tide = formatCurrentTide([
+    { t: formatLocalApiTime(previous), v: "2.14" },
+    { t: formatLocalApiTime(now), v: "2.41" }
+  ], now.getTime());
+
+  assert.equal(tide, "2.4 ft rising");
+});
+
+test("tide conditions show current feet and falling trend", () => {
+  const now = new Date("2026-06-09T12:06:00");
+  const previous = new Date("2026-06-09T12:00:00");
+  const tide = formatCurrentTide([
+    { t: formatLocalApiTime(previous), v: "3.02" },
+    { t: formatLocalApiTime(now), v: "2.76" }
+  ], now.getTime());
+
+  assert.equal(tide, "2.8 ft falling");
+});
+
+function formatLocalApiTime(date) {
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}

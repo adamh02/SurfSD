@@ -9,14 +9,16 @@ const mimeTypes = {
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
-  ".gif": "image/gif"
+  ".gif": "image/gif",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mov": "video/quicktime"
 };
 
-const allowedImageTypes = new Map([
-  ["image/jpeg", ".jpg"],
-  ["image/png", ".png"],
-  ["image/webp", ".webp"],
-  ["image/gif", ".gif"]
+const allowedVideoTypes = new Map([
+  ["video/mp4", ".mp4"],
+  ["video/webm", ".webm"],
+  ["video/quicktime", ".mov"]
 ]);
 
 export function decorateResponse(response) {
@@ -68,19 +70,19 @@ export async function readMultipartForm(request) {
     }
 
     if (!filename.trim()) continue;
-    if (!allowedImageTypes.has(type)) {
-      errors.push("Image must be JPEG, PNG, WebP, or GIF.");
+    if (!allowedVideoTypes.has(type)) {
+      errors.push("Video must be MP4, WebM, or MOV.");
       continue;
     }
 
     const buffer = Buffer.from(valueBinary, "binary");
     if (buffer.length > config.maxUploadBytes) {
-      errors.push("Image must be 2 MB or smaller.");
+      errors.push("Video must be 50 MB or smaller.");
       continue;
     }
 
     const safeName = `${Date.now()}-${cryptoRandom()}`;
-    const extension = allowedImageTypes.get(type);
+    const extension = allowedVideoTypes.get(type);
     const relativePath = `/uploads/${safeName}${extension}`;
     const absolutePath = path.join(config.uploadDir, `${safeName}${extension}`);
     fs.mkdirSync(config.uploadDir, { recursive: true });

@@ -117,18 +117,24 @@ function readBody(request, limit) {
   return new Promise((resolve, reject) => {
     const chunks = [];
     let size = 0;
+    let finished = false;
 
     request.on("data", (chunk) => {
+      if (finished) return;
       size += chunk.length;
       if (size > limit) {
+        finished = true;
         reject(new Error("Request body is too large."));
-        request.destroy();
         return;
       }
       chunks.push(chunk);
     });
-    request.on("end", () => resolve(Buffer.concat(chunks)));
-    request.on("error", reject);
+    request.on("end", () => {
+      if (!finished) resolve(Buffer.concat(chunks));
+    });
+    request.on("error", (error) => {
+      if (!finished) reject(error);
+    });
   });
 }
 

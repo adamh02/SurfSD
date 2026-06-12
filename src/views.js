@@ -50,13 +50,17 @@ export function aboutPage(context) {
   });
 }
 
-export function accountPage({ user, error = "", next = "" }) {
+export function accountPage({ user, recentReport, error = "", next = "" }) {
   const body = user
     ? `<section class="page-band"><div class="content narrow">
         <p class="eyebrow">Account</p>
-        <h1>${escapeHtml(user.name)}</h1>
-        <p class="lead">${escapeHtml(user.email)}</p>
-        <p>Member since ${formatDate(user.createdAt)}.</p>
+        <h1>Your account</h1>
+        <dl class="account-details">
+          <div><dt>Username</dt><dd>${escapeHtml(user.name)}</dd></div>
+          <div><dt>Email</dt><dd>${escapeHtml(user.email)}</dd></div>
+          <div><dt>Most Recent Report</dt><dd>${recentReport ? recentReportSummary(recentReport) : "No reports yet"}</dd></div>
+          <div><dt>Member Since</dt><dd>${formatDate(user.createdAt)}</dd></div>
+        </dl>
         <a class="button" href="/logout">Log out</a>
       </div></section>`
     : `<section class="auth-grid content">
@@ -71,11 +75,15 @@ function authForm(title, action, next, fields) {
   return `<form class="panel" method="post" action="${action}">
     <h1>${title}</h1>
     <input type="hidden" name="next" value="${escapeHtml(next)}">
-    ${fields.includes("name") ? `<label>Name<input name="name" autocomplete="name" required minlength="2"></label>` : ""}
+    ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" required minlength="2"></label>` : ""}
     <label>Email<input name="email" type="email" autocomplete="email" required></label>
     <label>Password<input name="password" type="password" autocomplete="${title === "Sign up" ? "new-password" : "current-password"}" required minlength="8"></label>
     <button class="button" type="submit">${title}</button>
   </form>`;
+}
+
+function recentReportSummary(report) {
+  return `<a href="/spots/${escapeHtml(report.surfSpotSlug)}">${escapeHtml(report.surfSpotName)}</a> — ${escapeHtml(report.waveHeight)} ft, ${escapeHtml(formatRelativeTime(report.createdAt))}`;
 }
 
 export function mapPage(context) {

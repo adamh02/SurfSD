@@ -1,6 +1,6 @@
 import http from "node:http";
 import { config } from "./config.js";
-import { openDatabase, findSurfSpotBySlug, findUserById, listReportsForSpot, createReport } from "./db.js";
+import { openDatabase, findMostRecentReportForUser, findSurfSpotBySlug, findUserById, listReportsForSpot, createReport } from "./db.js";
 import { decorateResponse, readForm, readMultipartForm, serveStatic } from "./httpUtils.js";
 import { login, requireUser, signup, validateLogin, validateSignup } from "./auth.js";
 import { destroySession, readSession, writeSession } from "./session.js";
@@ -23,6 +23,7 @@ export function createApp(options = {}) {
 
       if (
         url.pathname.startsWith("/uploads/") ||
+        url.pathname.startsWith("/spot-images/") ||
         url.pathname === "/styles.css" ||
         url.pathname === "/map.js" ||
         url.pathname === "/sd-map.svg" ||
@@ -37,26 +38,27 @@ export function createApp(options = {}) {
       if (request.method === "GET" && url.pathname === "/account") {
         return response.html(accountPage({
           user: request.user,
+          recentReport: request.user ? findMostRecentReportForUser(request.user.id) : undefined,
           error: url.searchParams.get("error") || "",
           next: url.searchParams.get("next") || ""
         }));
       }
 
-      if (request.method === "POST" && url.pathname === "/signup") return handleSignup(request, response);
-      if (request.method === "POST" && url.pathname === "/login") return handleLogin(request, response);
+      if (request.method === "POST" && url.pathname === "/signup") return await handleSignup(request, response);
+      if (request.method === "POST" && url.pathname === "/login") return await handleLogin(request, response);
       if (request.method === "GET" && url.pathname === "/logout") {
         destroySession(request, response);
         return response.redirect("/account");
       }
 
       const spotMatch = url.pathname.match(/^\/spots\/([^/]+)$/);
-      if (request.method === "GET" && spotMatch) return handleSpotPage(request, response, spotMatch[1], conditionsProvider);
+      if (request.method === "GET" && spotMatch) return await handleSpotPage(request, response, spotMatch[1], conditionsProvider);
 
       const newReportMatch = url.pathname.match(/^\/spots\/([^/]+)\/reports\/new$/);
       if (request.method === "GET" && newReportMatch) return handleNewReport(request, response, newReportMatch[1]);
 
       const createReportMatch = url.pathname.match(/^\/spots\/([^/]+)\/reports$/);
-      if (request.method === "POST" && createReportMatch) return handleCreateReport(request, response, createReportMatch[1]);
+      if (request.method === "POST" && createReportMatch) return await handleCreateReport(request, response, createReportMatch[1]);
 
       response.notFound();
     } catch (error) {
@@ -121,7 +123,19 @@ async function handleCreateReport(request, response, slug) {
   const spot = findSurfSpotBySlug(slug);
   if (!spot) return response.notFound();
 
-  const upload = await readMultipartForm(request);
+  let upload;
+  try {
+    upload = await readMultipartForm(request);
+  } catch (error) {
+    if (error.message === "Request body is too large.") {
+      return response.html(reportFormPage({
+        user: request.user,
+        spot,
+        error: "Video must be 50 MB or smaller."
+      }), 413);
+    }
+    throw error;
+  }
   const validation = validateReport({ ...upload.fields, file: upload.file });
   const errors = [...upload.errors, ...validation.errors];
   if (errors.length) {

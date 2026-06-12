@@ -1,5 +1,6 @@
 const cache = new Map();
 const cacheDurationMs = 10 * 60 * 1000;
+const requestTimeoutMs = 8 * 1000;
 const requestHeaders = {
   "User-Agent": "SurfSD local development (https://github.com/adamh02/SurfSD)"
 };
@@ -159,7 +160,7 @@ async function fetchText(url) {
 
 async function fetchWithTimeout(url) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3500);
+  const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
   try {
     return await fetch(url, { headers: requestHeaders, signal: controller.signal });
   } finally {

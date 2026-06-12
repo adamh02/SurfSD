@@ -143,6 +143,19 @@ export function findUserWithPassword(id) {
     .get(id);
 }
 
+export function findMostRecentReportForUser(userId) {
+  return getDatabase()
+    .prepare(`
+      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug
+      FROM reports
+      JOIN surf_spots ON surf_spots.id = reports.surfSpotId
+      WHERE reports.userId = ?
+      ORDER BY reports.createdAt DESC, reports.id DESC
+      LIMIT 1
+    `)
+    .get(userId);
+}
+
 export function listSurfSpots() {
   return getDatabase()
     .prepare("SELECT * FROM surf_spots ORDER BY latitude DESC")

@@ -122,6 +122,37 @@ test("users can sign up and passwords are hashed", async () => {
   }
 });
 
+test("account page lists username email membership and most recent report", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ReefRider",
+      email: "reef@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Account page report test.",
+      waveHeight: "5",
+      rating: "8"
+    });
+
+    const { response, text } = await client.get("/account");
+    assert.equal(response.status, 200);
+    assert.match(text, /Username/);
+    assert.match(text, /ReefRider/);
+    assert.match(text, /Email/);
+    assert.match(text, /reef@example.com/);
+    assert.match(text, /Most Recent Report/);
+    assert.match(text, /Swami&#039;s/);
+    assert.match(text, /5 ft/);
+    assert.match(text, /Member Since/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
 test("surf spot pages load correctly", async () => {
   const client = createTestClient();
   try {
@@ -134,12 +165,43 @@ test("surf spot pages load correctly", async () => {
   }
 });
 
+test("local surf spot images load correctly", async () => {
+  const client = createTestClient();
+  try {
+    const { response } = await client.get("/spot-images/oceanside-pier.png");
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-type"), "image/png");
+  } finally {
+    await client.cleanup();
+  }
+});
+
 test("logged-out users cannot create reports", async () => {
   const client = createTestClient();
   try {
     const { response } = await client.get("/spots/swamis/reports/new");
     assert.equal(response.status, 303);
     assert.equal(response.headers.get("location").startsWith("/account?next="), true);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("oversized requests return an error without taking down the app", async () => {
+  const client = createTestClient();
+  try {
+    const oversizedName = "x".repeat(1024 * 1024 + 1);
+    const { response } = await client.postForm("/signup", {
+      name: oversizedName,
+      email: "large@example.com",
+      password: "password123",
+      next: "/account"
+    });
+    assert.equal(response.status, 413);
+
+    const mapPage = await client.get("/map");
+    assert.equal(mapPage.response.status, 200);
+    assert.match(mapPage.text, /San Diego surf spots/);
   } finally {
     await client.cleanup();
   }

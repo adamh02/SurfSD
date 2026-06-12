@@ -5,7 +5,7 @@ const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateSignup({ name = "", email = "", password = "" }) {
   const errors = [];
-  if (name.trim().length < 2) errors.push("Name must be at least 2 characters.");
+  if (name.trim().length < 2) errors.push("Username must be at least 2 characters.");
   if (!emailPattern.test(email.trim())) errors.push("Enter a valid email address.");
   if (password.length < 8) errors.push("Password must be at least 8 characters.");
   return errors;

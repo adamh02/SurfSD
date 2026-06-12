@@ -352,6 +352,29 @@ textarea {
   font-weight: 800;
 }
 
+.account-details {
+  margin: 28px 0;
+}
+
+.account-details > div {
+  border-bottom: 1px solid var(--line);
+  padding: 16px 0;
+}
+
+.account-details dt {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.account-details dd {
+  font-size: 1rem;
+  margin: 0;
+}
+
 .empty {
   color: var(--muted);
 }

@@ -88,21 +88,29 @@ function recentReportSummary(report) {
 
 export function mapPage(context) {
   const spots = listSurfSpots();
+  const conditions = context.conditions || { swell: "Loading swell", tide: "Loading tide", weather: "Loading weather" };
   const spotData = escapeHtml(JSON.stringify(spots.map(({ name, slug, latitude, longitude, difficulty }) => ({ name, slug, latitude, longitude, difficulty }))));
   return layout({
     ...context,
     title: "Map",
     body: `<section class="map-shell">
       <div class="map-copy">
-        <p class="eyebrow">Live community map</p>
-        <h1>San Diego surf spots</h1>
-        <p>Explore placeholder spots from North County down to Ocean Beach, then open a spot page to read or post condition reports.</p>
+        <p class="eyebrow">San Diego beta</p>
+        <h1>SurfSD</h1>
+        <p>A live San Diego surf map for checking local breaks, current ocean conditions, and community reports from surfers nearby.</p>
+        <div class="map-summary">
+          <span><strong>${spots.length}</strong> spots</span>
+          <span><strong>Live</strong> conditions</span>
+        </div>
       </div>
       <div id="surf-map" data-spots="${spotData}"></div>
       <aside class="stats-panel">
-        <span>Today placeholder</span>
-        <strong>3-4 ft W swell</strong>
-        <p>Tide: mid rising<br>Wind: light W<br>Weather: 68 F, patchy marine layer</p>
+        <span>Live San Diego report</span>
+        <strong>${escapeHtml(conditions.swell)}</strong>
+        <dl>
+          <div><dt>Tide</dt><dd>${escapeHtml(conditions.tide)}</dd></div>
+          <div><dt>Weather</dt><dd>${escapeHtml(conditions.weather)}</dd></div>
+        </dl>
       </aside>
     </section>`
   });
@@ -120,9 +128,9 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
         <h1>${escapeHtml(spot.name)}</h1>
         <p>${escapeHtml(spot.description)}</p>
         <div class="condition-strip">
-          <span><strong>Swell</strong> ${escapeHtml(conditions.swell)}</span>
-          <span><strong>Tide</strong> ${escapeHtml(conditions.tide)}</span>
-          <span><strong>Weather</strong> ${escapeHtml(conditions.weather)}</span>
+          <span><strong>Swell</strong><em>${escapeHtml(conditions.swell)}</em></span>
+          <span><strong>Tide</strong><em>${escapeHtml(conditions.tide)}</em></span>
+          <span><strong>Weather</strong><em>${escapeHtml(conditions.weather)}</em></span>
         </div>
         <a class="button" href="/spots/${escapeHtml(spot.slug)}/reports/new">+ Create Report</a>
       </div>

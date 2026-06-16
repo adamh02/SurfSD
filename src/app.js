@@ -34,7 +34,13 @@ export function createApp(options = {}) {
 
       if (request.method === "GET" && url.pathname === "/") return response.redirect("/map");
       if (request.method === "GET" && url.pathname === "/about") return response.html(aboutPage({ user: request.user }));
-      if (request.method === "GET" && url.pathname === "/map") return response.html(mapPage({ user: request.user }));
+      if (request.method === "GET" && url.pathname === "/map") {
+        const sanDiegoReferenceSpot = findSurfSpotBySlug("ocean-beach-jetty") || findSurfSpotBySlug("little-point-rockpile");
+        const conditions = sanDiegoReferenceSpot
+          ? await conditionsProvider(sanDiegoReferenceSpot).catch(() => placeholderConditions())
+          : placeholderConditions();
+        return response.html(mapPage({ user: request.user, conditions }));
+      }
       if (request.method === "GET" && url.pathname === "/account") {
         return response.html(accountPage({
           user: request.user,

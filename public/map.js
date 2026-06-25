@@ -14,9 +14,9 @@ window.addEventListener("DOMContentLoaded", () => {
     attribution: "&copy; OpenStreetMap"
   }).addTo(map);
 
-  const markerIcon = L.divIcon({
-    className: "surf-marker",
-    html: "",
+  const markerIcon = (spot) => L.divIcon({
+    className: `surf-marker${spot.hasReportToday ? " has-report-today" : ""}`,
+    html: spot.hasReportToday ? '<span class="fresh-report-dot" aria-hidden="true"></span>' : "",
     iconSize: [18, 18],
     iconAnchor: [9, 9],
     popupAnchor: [0, -12]
@@ -26,9 +26,9 @@ window.addEventListener("DOMContentLoaded", () => {
 
   spots.forEach((spot) => {
     markerBounds.push([spot.latitude, spot.longitude]);
-    L.marker([spot.latitude, spot.longitude], { icon: markerIcon })
+    L.marker([spot.latitude, spot.longitude], { icon: markerIcon(spot) })
       .addTo(map)
-      .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}<br><a href="/spots/${spot.slug}">View</a>`);
+      .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}${spot.hasReportToday ? "<br>New report today" : ""}<br><a href="/spots/${spot.slug}">View</a>`);
   });
 
   const resetView = () => {

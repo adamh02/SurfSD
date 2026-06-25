@@ -1,8 +1,8 @@
 import http from "node:http";
 import { config } from "./config.js";
-import { openDatabase, findMostRecentReportForUser, findSurfSpotBySlug, findUserById, listReportsForSpot, createReport } from "./db.js";
+import { openDatabase, findMostRecentReportForUser, findSurfSpotBySlug, findUserById, listReportsForSpot, listReportsForUser, createReport } from "./db.js";
 import { decorateResponse, readForm, readMultipartForm, serveStatic } from "./httpUtils.js";
-import { login, requireUser, signup, validateLogin, validateSignup } from "./auth.js";
+import { changeUsername, login, requireUser, resetPassword, signup, validateLogin, validateSignup } from "./auth.js";
 import { destroySession, readSession, writeSession } from "./session.js";
 import { aboutPage, accountPage, mapPage, reportFormPage, spotPage } from "./views.js";
 import { validateReport } from "./validation.js";
@@ -45,13 +45,17 @@ export function createApp(options = {}) {
         return response.html(accountPage({
           user: request.user,
           recentReport: request.user ? findMostRecentReportForUser(request.user.id) : undefined,
+          reports: request.user ? listReportsForUser(request.user.id) : [],
           error: url.searchParams.get("error") || "",
+          message: url.searchParams.get("message") || "",
           next: url.searchParams.get("next") || ""
         }));
       }
 
       if (request.method === "POST" && url.pathname === "/signup") return await handleSignup(request, response);
       if (request.method === "POST" && url.pathname === "/login") return await handleLogin(request, response);
+      if (request.method === "POST" && url.pathname === "/account/username") return await handleChangeUsername(request, response);
+      if (request.method === "POST" && url.pathname === "/account/password") return await handleResetPassword(request, response);
       if (request.method === "GET" && url.pathname === "/logout") {
         destroySession(request, response);
         return response.redirect("/account");
@@ -107,6 +111,26 @@ async function handleLogin(request, response) {
 
   writeSession(response, { userId: result.user.id });
   response.redirect(form.next || "/account");
+}
+
+async function handleChangeUsername(request, response) {
+  if (!requireUser(request, response)) return;
+  const form = await readForm(request);
+  const result = changeUsername(request.user, form);
+  if (result.errors) {
+    return response.redirect(`/account?error=${encodeURIComponent(result.errors.join(" "))}`);
+  }
+  response.redirect("/account?message=Username updated.");
+}
+
+async function handleResetPassword(request, response) {
+  if (!requireUser(request, response)) return;
+  const form = await readForm(request);
+  const result = resetPassword(request.user.id, form);
+  if (result.errors) {
+    return response.redirect(`/account?error=${encodeURIComponent(result.errors.join(" "))}`);
+  }
+  response.redirect("/account?message=Password updated.");
 }
 
 async function handleSpotPage(request, response, slug, conditionsProvider, error = "") {

@@ -6,7 +6,7 @@ import path from "node:path";
 import test from "node:test";
 import { createApp } from "../src/app.js";
 import { formatCurrentTide } from "../src/conditions.js";
-import { closeDatabase, findUserByEmail, getDatabase } from "../src/db.js";
+import { closeDatabase, findSurfSpotBySlug, findUserByEmail, getDatabase } from "../src/db.js";
 import { resetSessions } from "../src/session.js";
 
 function createTestClient() {
@@ -122,7 +122,7 @@ test("users can sign up and passwords are hashed", async () => {
   }
 });
 
-test("account page lists username email membership and most recent report", async () => {
+test("account page lists profile settings and report history", async () => {
   const client = createTestClient();
   try {
     await client.postForm("/signup", {
@@ -144,10 +144,108 @@ test("account page lists username email membership and most recent report", asyn
     assert.match(text, /ReefRider/);
     assert.match(text, /Email/);
     assert.match(text, /reef@example.com/);
-    assert.match(text, /Most Recent Report/);
     assert.match(text, /Swami&#039;s/);
     assert.match(text, /5 ft/);
+    assert.match(text, /Account Settings/);
+    assert.match(text, /Change Username/);
+    assert.match(text, /Reset Password/);
+    assert.match(text, /Report History/);
+    assert.match(text, /Your Reports/);
+    assert.match(text, /Account page report test\./);
+    assert.match(text, /8\/10 - Good/);
     assert.match(text, /Member Since/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can change username once every two weeks", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "FirstName",
+      email: "name@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const firstChange = await client.postForm("/account/username", { name: "SecondName" });
+    assert.equal(firstChange.response.status, 303);
+    assert.equal(firstChange.response.headers.get("location"), "/account?message=Username updated.");
+
+    const account = await client.get("/account");
+    assert.match(account.text, /SecondName/);
+
+    const secondChange = await client.postForm("/account/username", { name: "ThirdName" });
+    assert.equal(secondChange.response.status, 303);
+    assert.match(secondChange.response.headers.get("location"), /You%20can%20change%20your%20username%20again/);
+
+    const user = findUserByEmail("name@example.com");
+    assert.equal(user.name, "SecondName");
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can reset password from account page", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "PasswordUser",
+      email: "reset@example.com",
+      password: "oldpassword",
+      next: "/account"
+    });
+
+    const reset = await client.postForm("/account/password", {
+      currentPassword: "oldpassword",
+      newPassword: "newpassword"
+    });
+    assert.equal(reset.response.status, 303);
+    assert.equal(reset.response.headers.get("location"), "/account?message=Password updated.");
+
+    await client.get("/logout");
+    const oldLogin = await client.postForm("/login", {
+      email: "reset@example.com",
+      password: "oldpassword"
+    });
+    assert.equal(oldLogin.response.status, 401);
+
+    const newLogin = await client.postForm("/login", {
+      email: "reset@example.com",
+      password: "newpassword"
+    });
+    assert.equal(newLogin.response.status, 303);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can log in with email or username", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "UsernameLogin",
+      email: "username-login@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.get("/logout");
+    const usernameLogin = await client.postForm("/login", {
+      email: "UsernameLogin",
+      password: "password123"
+    });
+    assert.equal(usernameLogin.response.status, 303);
+    assert.equal(usernameLogin.response.headers.get("location"), "/account");
+
+    await client.get("/logout");
+    const emailLogin = await client.postForm("/login", {
+      email: "username-login@example.com",
+      password: "password123"
+    });
+    assert.equal(emailLogin.response.status, 303);
+    assert.equal(emailLogin.response.headers.get("location"), "/account");
   } finally {
     await client.cleanup();
   }
@@ -159,7 +257,20 @@ test("surf spot pages load correctly", async () => {
     const { response, text } = await client.get("/spots/swamis");
     assert.equal(response.status, 200);
     assert.match(text, /Swami&#039;s/);
+    assert.match(text, /<time datetime="[^"]+">[^<]+<\/time>/);
     assert.match(text, /Recent Reports/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("map conditions show a live timestamp", async () => {
+  const client = createTestClient();
+  try {
+    const { response, text } = await client.get("/map");
+    assert.equal(response.status, 200);
+    assert.match(text, /Live San Diego report/);
+    assert.match(text, /<time datetime="[^"]+">[^<]+<\/time>/);
   } finally {
     await client.cleanup();
   }
@@ -235,7 +346,108 @@ test("logged-in users can create a surf report", async () => {
 
     const spotPage = await client.get("/spots/swamis");
     assert.match(spotPage.text, /Clean lines and patient sets./);
+    assert.match(spotPage.text, /8\/10 - Good/);
     assert.match(spotPage.text, /(just now|\d+ minutes ago)/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("map marks spots with reports from today", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "Daily Reporter",
+      email: "daily@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Fresh report for the map.",
+      waveHeight: "4",
+      rating: "8"
+    });
+
+    const { response, text } = await client.get("/map");
+    assert.equal(response.status, 200);
+    assert.match(text, /&quot;slug&quot;:&quot;swamis&quot;/);
+    assert.match(text, /&quot;hasReportToday&quot;:true/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("surf report authors earn milestone badges", async () => {
+  const client = createTestClient();
+  try {
+    const users = [
+      ["TenPoster", "ten@example.com", 10, /10 Reports/],
+      ["HundredPoster", "hundred@example.com", 100, /100 Reports/],
+      ["ThousandPoster", "thousand@example.com", 1000, /1K Reports/]
+    ];
+    const swamis = findSurfSpotBySlug("swamis");
+    const windansea = findSurfSpotBySlug("windansea");
+    const insertReport = getDatabase().prepare(`
+      INSERT INTO reports (surfSpotId, userId, imageUrl, description, waveHeight, rating)
+      VALUES (?, ?, NULL, ?, 4, 8)
+    `);
+
+    for (const [name, email, reportCount] of users) {
+      await client.postForm("/signup", {
+        name,
+        email,
+        password: "password123",
+        next: "/account"
+      });
+      const user = findUserByEmail(email);
+      for (let index = 0; index < reportCount - 1; index += 1) {
+        insertReport.run(windansea.id, user.id, `${name} milestone filler ${index}.`);
+      }
+      insertReport.run(swamis.id, user.id, `${name} visible milestone report.`);
+      await client.get("/logout");
+    }
+
+    const spotPage = await client.get("/spots/swamis");
+    for (const [, , , pattern] of users) {
+      assert.match(spotPage.text, pattern);
+    }
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("report ratings include condition labels", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "Rating Labels",
+      email: "ratings@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const ratings = [
+      ["Firing report.", "9", /9\/10 - Firing/],
+      ["Good report.", "8", /8\/10 - Good/],
+      ["Decent report.", "7", /7\/10 - Decent/],
+      ["Mediocre report.", "5", /5\/10 - Mediocre/],
+      ["Poor report.", "3", /3\/10 - Poor/]
+    ];
+
+    for (const [description, rating] of ratings) {
+      const { response } = await client.postMultipart("/spots/swamis/reports", {
+        description,
+        waveHeight: "3",
+        rating
+      });
+      assert.equal(response.status, 303);
+    }
+
+    const spotPage = await client.get("/spots/swamis");
+    for (const [, , pattern] of ratings) {
+      assert.match(spotPage.text, pattern);
+    }
   } finally {
     await client.cleanup();
   }

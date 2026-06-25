@@ -167,11 +167,19 @@ nav a:hover {
 }
 
 .flash {
-  background: var(--danger-soft);
-  border-bottom: 1px solid rgba(255, 184, 77, 0.48);
+  background: rgba(255, 244, 223, 0.96);
+  border: 1px solid rgba(255, 184, 77, 0.55);
+  border-radius: 16px;
+  box-shadow: 0 16px 40px rgba(118, 81, 4, 0.13);
   color: var(--danger-ink);
-  font-weight: 700;
-  padding: 104px clamp(16px, 4vw, 44px) 14px;
+  font-weight: 850;
+  line-height: 1.35;
+  margin: 112px auto -78px;
+  max-width: min(1040px, calc(100vw - 36px));
+  padding: 14px 18px;
+  position: relative;
+  text-align: center;
+  z-index: 5;
 }
 
 main {
@@ -396,7 +404,25 @@ textarea {
   border-radius: 50%;
   box-shadow: 0 7px 20px rgba(7, 29, 38, 0.34), inset 0 0 0 4px var(--white);
   outline: 2px solid rgba(0, 127, 148, 0.48);
+  position: relative;
   transition: transform 150ms ease, outline-color 150ms ease;
+}
+
+.surf-marker.has-report-today {
+  outline-color: rgba(216, 47, 47, 0.7);
+}
+
+.fresh-report-dot {
+  background: #e03131;
+  border: 2px solid var(--white);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(224, 49, 49, 0.18);
+  height: 8px;
+  left: 50%;
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
 }
 
 .surf-marker:hover {
@@ -526,6 +552,14 @@ textarea {
   font-weight: 900;
   letter-spacing: 0.13em;
   text-transform: uppercase;
+}
+
+.stats-panel time {
+  color: rgba(255, 255, 255, 0.72);
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 800;
+  margin-top: 6px;
 }
 
 .stats-panel strong {
@@ -662,6 +696,16 @@ textarea {
   text-transform: uppercase;
 }
 
+.condition-strip time {
+  color: var(--sea);
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  margin: -6px 0 10px;
+  text-transform: uppercase;
+}
+
 .condition-strip em {
   color: var(--ink);
   display: block;
@@ -770,6 +814,41 @@ textarea {
   line-height: 1.2;
 }
 
+.report-author {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.report-badge {
+  background: rgba(0, 153, 169, 0.12);
+  border: 1px solid rgba(0, 153, 169, 0.22);
+  border-radius: 999px;
+  color: var(--sea-dark);
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-style: normal;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  padding: 5px 8px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.report-badge-pro {
+  background: rgba(255, 168, 31, 0.16);
+  border-color: rgba(255, 168, 31, 0.34);
+  color: #9a5d00;
+}
+
+.report-badge-elite {
+  background: rgba(7, 29, 38, 0.9);
+  border-color: rgba(7, 29, 38, 0.9);
+  color: var(--white);
+}
+
 .account-details {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.72);
@@ -808,6 +887,109 @@ textarea {
   font-weight: 850;
 }
 
+.account-settings {
+  margin: 34px 0;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.settings-card {
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(7, 29, 38, 0.09);
+  padding: 18px;
+}
+
+.settings-card h3 {
+  color: var(--ink);
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+.settings-card p {
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.account-history {
+  margin: 34px 0;
+}
+
+.section-heading {
+  margin-bottom: 16px;
+}
+
+.section-heading h2 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  margin-bottom: 0;
+}
+
+.history-list {
+  display: grid;
+  gap: 14px;
+}
+
+.history-item {
+  background: rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(255, 255, 255, 0.76);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(7, 29, 38, 0.09);
+  display: grid;
+  gap: clamp(18px, 4vw, 40px);
+  grid-template-columns: minmax(220px, 1.15fr) minmax(420px, 1fr);
+  align-items: center;
+  padding: clamp(22px, 3vw, 32px);
+}
+
+.history-item a {
+  color: var(--ink);
+  display: inline-block;
+  font-size: clamp(1.15rem, 2vw, 1.5rem);
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.history-item a:hover {
+  color: var(--sea-dark);
+}
+
+.history-item p {
+  color: var(--muted);
+  font-size: clamp(1rem, 1.6vw, 1.18rem);
+  line-height: 1.45;
+  margin: 0;
+  max-width: 42ch;
+}
+
+.history-item dl {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(140px, 1fr) minmax(150px, 1fr);
+  margin: 0;
+}
+
+.history-item dt {
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.history-item dd {
+  color: var(--ink);
+  font-size: clamp(1.05rem, 1.8vw, 1.3rem);
+  font-weight: 850;
+  margin: 2px 0 0;
+  white-space: nowrap;
+}
+
 .empty {
   background: var(--card);
   border: 1px solid rgba(255, 255, 255, 0.76);
@@ -819,7 +1001,10 @@ textarea {
 
 @media (max-width: 980px) {
   .report-grid,
-  .condition-strip {
+  .condition-strip,
+  .history-item,
+  .history-item dl,
+  .settings-grid {
     grid-template-columns: 1fr;
   }
 

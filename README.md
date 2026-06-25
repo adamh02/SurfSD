@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/surfsd-logo.png" alt="SurfSD logo" width="130">
+  <img src="public/surfsd-logo.png" alt="SurfSD logo" style="width: 130px;">
 
   # SurfSD
 

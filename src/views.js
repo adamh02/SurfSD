@@ -2,7 +2,7 @@ import { listSurfSpots } from "./db.js";
 
 export function layout({ title, user, body, flash = "" }) {
   const navUser = user
-    ? `<span class="nav-user">Hi, ${escapeHtml(user.name)}</span><a href="/logout">Log Out</a>`
+    ? `<a href="/logout">Log Out</a><span class="nav-user">Hi, ${escapeHtml(user.name)}</span>`
     : `<a href="/account">Log In</a>`;
 
   return `<!doctype html>
@@ -28,7 +28,7 @@ export function layout({ title, user, body, flash = "" }) {
         ${navUser}
       </nav>
     </header>
-    ${flash ? `<div class="flash">${escapeHtml(flash)}</div>` : ""}
+    ${flash ? `<div class="flash" role="alert">${escapeHtml(flash)}</div>` : ""}
     <main>${body}</main>
   </body>
   </html>`;
@@ -50,7 +50,7 @@ export function aboutPage(context) {
   });
 }
 
-export function accountPage({ user, recentReport, error = "", next = "" }) {
+export function accountPage({ user, recentReport, reports = [], error = "", message = "", next = "" }) {
   const body = user
     ? `<section class="page-band"><div class="content narrow">
         <p class="eyebrow">Account</p>
@@ -58,9 +58,36 @@ export function accountPage({ user, recentReport, error = "", next = "" }) {
         <dl class="account-details">
           <div><dt>Username</dt><dd>${escapeHtml(user.name)}</dd></div>
           <div><dt>Email</dt><dd>${escapeHtml(user.email)}</dd></div>
-          <div><dt>Most Recent Report</dt><dd>${recentReport ? recentReportSummary(recentReport) : "No reports yet"}</dd></div>
           <div><dt>Member Since</dt><dd>${formatDate(user.createdAt)}</dd></div>
         </dl>
+        <section class="account-settings">
+          <div class="section-heading">
+            <p class="eyebrow">Account Settings</p>
+            <h2>Manage Your Account</h2>
+          </div>
+          <div class="settings-grid">
+            <form class="settings-card" method="post" action="/account/username">
+              <h3>Change Username</h3>
+              <p>You can change your username once every 14 days.</p>
+              <label>New Username<input name="name" autocomplete="username" minlength="2" maxlength="32" value="${escapeHtml(user.name)}" required></label>
+              <button class="button" type="submit">Update Username</button>
+            </form>
+            <form class="settings-card" method="post" action="/account/password">
+              <h3>Reset Password</h3>
+              <p>Enter your current password before choosing a new one.</p>
+              <label>Current Password<input name="currentPassword" type="password" autocomplete="current-password" placeholder="Current password" required></label>
+              <label>New Password<input name="newPassword" type="password" autocomplete="new-password" placeholder="At least 8 characters" minlength="8" required></label>
+              <button class="button" type="submit">Update Password</button>
+            </form>
+          </div>
+        </section>
+        <section class="account-history">
+          <div class="section-heading">
+            <p class="eyebrow">Report History</p>
+            <h2>Your Reports</h2>
+          </div>
+          ${reports.length ? `<div class="history-list">${reports.map(accountReport).join("")}</div>` : `<p class="empty">No reports yet. Your saved surf reports will show up here.</p>`}
+        </section>
         <a class="button" href="/logout">Log Out</a>
       </div></section>`
     : `<section class="auth-grid content">
@@ -68,28 +95,47 @@ export function accountPage({ user, recentReport, error = "", next = "" }) {
         ${authForm("Log In", "/login", next, ["email", "password"])}
       </section>`;
 
-  return layout({ title: "Account", user, flash: error, body });
+  return layout({ title: "Account", user, flash: error || message, body });
 }
 
 function authForm(title, action, next, fields) {
+  const isLogin = title === "Log In";
   return `<form class="panel" method="post" action="${action}">
     <h1>${title}</h1>
     <input type="hidden" name="next" value="${escapeHtml(next)}">
-    ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" placeholder="Adam" required minlength="2"></label>` : ""}
-    <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
-    <label>Password<input name="password" type="password" autocomplete="${title === "Sign Up" ? "new-password" : "current-password"}" placeholder="At least 8 characters" required minlength="8"></label>
+    ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" placeholder="WaveRider" required minlength="2"></label>` : ""}
+    <label>${isLogin ? "Email or Username" : "Email"}<input name="email" type="${isLogin ? "text" : "email"}" autocomplete="${isLogin ? "username" : "email"}" placeholder="${isLogin ? "surfer@example.com or WaveRider" : "surfer@example.com"}" required></label>
+    <label>Password<input name="password" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="At least 8 characters" required minlength="8"></label>
     <button class="button" type="submit">${title}</button>
   </form>`;
 }
 
-function recentReportSummary(report) {
-  return `<a href="/spots/${escapeHtml(report.surfSpotSlug)}">${escapeHtml(report.surfSpotName)}</a> — ${escapeHtml(report.waveHeight)} ft, ${escapeHtml(formatRelativeTime(report.createdAt))}`;
+function accountReport(report) {
+  return `<article class="history-item">
+    <div>
+      <a href="/spots/${escapeHtml(report.surfSpotSlug)}">${escapeHtml(report.surfSpotName)}</a>
+      <p>${escapeHtml(report.description)}</p>
+    </div>
+    <dl>
+      <div><dt>Wave Height</dt><dd>${escapeHtml(report.waveHeight)} ft</dd></div>
+      <div><dt>Rating</dt><dd>${ratingSummary(report.rating)}</dd></div>
+      <div><dt>Date</dt><dd>${escapeHtml(formatDate(report.createdAt))}</dd></div>
+    </dl>
+  </article>`;
 }
 
 export function mapPage(context) {
   const spots = listSurfSpots();
   const conditions = context.conditions || { swell: "Loading swell", tide: "Loading tide", weather: "Loading weather" };
-  const spotData = escapeHtml(JSON.stringify(spots.map(({ name, slug, latitude, longitude, difficulty }) => ({ name, slug, latitude, longitude, difficulty }))));
+  const liveTimestamp = formatLiveTimestamp(context.now);
+  const spotData = escapeHtml(JSON.stringify(spots.map(({ name, slug, latitude, longitude, difficulty, hasReportToday }) => ({
+    name,
+    slug,
+    latitude,
+    longitude,
+    difficulty,
+    hasReportToday: Boolean(hasReportToday)
+  }))));
   return layout({
     ...context,
     title: "Map",
@@ -106,6 +152,7 @@ export function mapPage(context) {
       <div id="surf-map" data-spots="${spotData}"></div>
       <aside class="stats-panel">
         <span>Live San Diego report</span>
+        <time datetime="${escapeHtml(toIsoTimestamp(context.now))}">${escapeHtml(liveTimestamp)}</time>
         <strong>${escapeHtml(conditions.swell)}</strong>
         <dl>
           <div><dt>Tide</dt><dd>${escapeHtml(conditions.tide)}</dd></div>
@@ -118,6 +165,9 @@ export function mapPage(context) {
 }
 
 export function spotPage({ user, spot, reports, conditions, error = "" }) {
+  const now = new Date();
+  const liveTimestamp = formatLiveTimestamp(now);
+  const isoTimestamp = toIsoTimestamp(now);
   return layout({
     title: spot.name,
     user,
@@ -129,9 +179,9 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
         <h1>${escapeHtml(spot.name)}</h1>
         <p>${escapeHtml(spot.description)}</p>
         <div class="condition-strip">
-          <span><strong>Swell</strong><em>${escapeHtml(conditions.swell)}</em><small>NOAA NDBC</small></span>
-          <span><strong>Tide</strong><em>${escapeHtml(conditions.tide)}</em><small>NOAA Tides & Currents</small></span>
-          <span><strong>Weather</strong><em>${escapeHtml(conditions.weather)}</em><small>National Weather Service</small></span>
+          <span><strong>Swell</strong><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time><em>${escapeHtml(conditions.swell)}</em><small>NOAA NDBC</small></span>
+          <span><strong>Tide</strong><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time><em>${escapeHtml(conditions.tide)}</em><small>NOAA Tides & Currents</small></span>
+          <span><strong>Weather</strong><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time><em>${escapeHtml(conditions.weather)}</em><small>National Weather Service</small></span>
         </div>
         <a class="button" href="/spots/${escapeHtml(spot.slug)}/reports/new">+ Create Report</a>
       </div>
@@ -150,12 +200,20 @@ function reportCard(report) {
       <p>${escapeHtml(report.description)}</p>
       <div class="meta">
         <span><strong>Wave Height</strong><em>${escapeHtml(report.waveHeight)} ft</em></span>
-        <span><strong>Rating</strong><em>${report.rating ? `${escapeHtml(report.rating)}/10` : "No rating"}</em></span>
+        <span><strong>Rating</strong><em>${ratingSummary(report.rating)}</em></span>
         <span><strong>Date</strong><em>${escapeHtml(formatRelativeTime(report.createdAt))}</em></span>
-        <span><strong>Posted By</strong><em>${escapeHtml(report.userName)}</em></span>
+        <span><strong>Posted By</strong><em class="report-author">${escapeHtml(report.userName)}${reportBadge(report.userReportCount)}</em></span>
       </div>
     </div>
   </article>`;
+}
+
+function reportBadge(reportCount = 0) {
+  const count = Number(reportCount);
+  if (count >= 1000) return `<b class="report-badge report-badge-elite" title="1,000+ surf reports posted">1K Reports</b>`;
+  if (count >= 100) return `<b class="report-badge report-badge-pro" title="100+ surf reports posted">100 Reports</b>`;
+  if (count >= 10) return `<b class="report-badge" title="10+ surf reports posted">10 Reports</b>`;
+  return "";
 }
 
 function reportMedia(mediaUrl) {
@@ -164,6 +222,19 @@ function reportMedia(mediaUrl) {
     return `<video class="report-video" controls preload="metadata" src="${escapedUrl}"></video>`;
   }
   return `<img src="${escapedUrl}" alt="Surf report media">`;
+}
+
+function ratingSummary(rating) {
+  if (!rating) return "No rating";
+  return `${escapeHtml(rating)}/10 - ${ratingLabel(Number(rating))}`;
+}
+
+function ratingLabel(rating) {
+  if (rating >= 9) return "Firing";
+  if (rating === 8) return "Good";
+  if (rating >= 6) return "Decent";
+  if (rating >= 4) return "Mediocre";
+  return "Poor";
 }
 
 export function reportFormPage({ user, spot, error = "", values = {} }) {
@@ -194,6 +265,22 @@ export function escapeHtml(value = "") {
 
 function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
+}
+
+function formatLiveTimestamp(value = new Date()) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: "America/Los_Angeles",
+    timeZoneName: "short"
+  }).format(new Date(value));
+}
+
+function toIsoTimestamp(value = new Date()) {
+  return new Date(value).toISOString();
 }
 
 function formatRelativeTime(value) {

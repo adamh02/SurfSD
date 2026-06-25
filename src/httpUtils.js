@@ -62,7 +62,7 @@ export async function readMultipartForm(request) {
     const name = rawHeaders.match(/name="([^"]+)"/)?.[1];
     const filename = rawHeaders.match(/filename="([^"]*)"/)?.[1];
     const type = rawHeaders.match(/Content-Type:\s*([^\r\n]+)/i)?.[1]?.trim();
-    const valueBinary = rawValue.slice(0, rawValue.lastIndexOf("\r\n"));
+    const valueBinary = rawValue.replace(/(?:\r\n)+$/g, "");
 
     if (!filename) {
       fields[name] = Buffer.from(valueBinary, "binary").toString("utf8");

@@ -61,6 +61,14 @@ function migrate() {
     );
   `);
   migrateReportsOptionalFields();
+  migrateUserAccountSettings();
+}
+
+function migrateUserAccountSettings() {
+  const columns = database.prepare("PRAGMA table_info(users)").all();
+  if (!columns.some((column) => column.name === "usernameChangedAt")) {
+    database.exec("ALTER TABLE users ADD COLUMN usernameChangedAt TEXT");
+  }
 }
 
 function migrateReportsOptionalFields() {
@@ -131,9 +139,15 @@ export function findUserByEmail(email) {
     .get(email.toLowerCase());
 }
 
+export function findUserByName(name) {
+  return getDatabase()
+    .prepare("SELECT * FROM users WHERE lower(name) = lower(?)")
+    .get(name.trim());
+}
+
 export function findUserById(id) {
   return getDatabase()
-    .prepare("SELECT id, name, email, createdAt FROM users WHERE id = ?")
+    .prepare("SELECT id, name, email, usernameChangedAt, createdAt FROM users WHERE id = ?")
     .get(id);
 }
 
@@ -141,6 +155,19 @@ export function findUserWithPassword(id) {
   return getDatabase()
     .prepare("SELECT * FROM users WHERE id = ?")
     .get(id);
+}
+
+export function updateUsername(userId, name) {
+  getDatabase()
+    .prepare("UPDATE users SET name = ?, usernameChangedAt = CURRENT_TIMESTAMP WHERE id = ?")
+    .run(name, userId);
+  return findUserById(userId);
+}
+
+export function updatePassword(userId, passwordHash) {
+  getDatabase()
+    .prepare("UPDATE users SET passwordHash = ? WHERE id = ?")
+    .run(passwordHash, userId);
 }
 
 export function findMostRecentReportForUser(userId) {
@@ -156,9 +183,31 @@ export function findMostRecentReportForUser(userId) {
     .get(userId);
 }
 
+export function listReportsForUser(userId) {
+  return getDatabase()
+    .prepare(`
+      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug
+      FROM reports
+      JOIN surf_spots ON surf_spots.id = reports.surfSpotId
+      WHERE reports.userId = ?
+      ORDER BY reports.createdAt DESC, reports.id DESC
+    `)
+    .all(userId);
+}
+
 export function listSurfSpots() {
   return getDatabase()
-    .prepare("SELECT * FROM surf_spots ORDER BY latitude DESC")
+    .prepare(`
+      SELECT surf_spots.*,
+        EXISTS (
+          SELECT 1
+          FROM reports
+          WHERE reports.surfSpotId = surf_spots.id
+            AND date(reports.createdAt) = date('now')
+        ) AS hasReportToday
+      FROM surf_spots
+      ORDER BY latitude DESC
+    `)
     .all();
 }
 
@@ -181,7 +230,13 @@ export function createReport({ surfSpotId, userId, imageUrl, description, waveHe
 export function listReportsForSpot(surfSpotId) {
   return getDatabase()
     .prepare(`
-      SELECT reports.*, users.name AS userName
+      SELECT reports.*,
+        users.name AS userName,
+        (
+          SELECT COUNT(*)
+          FROM reports AS user_reports
+          WHERE user_reports.userId = users.id
+        ) AS userReportCount
       FROM reports
       JOIN users ON users.id = reports.userId
       WHERE reports.surfSpotId = ?

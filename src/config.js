@@ -8,6 +8,6 @@ export const config = {
   port: Number(process.env.PORT || 3000),
   databasePath: process.env.DATABASE_PATH || path.join(rootDir, "surfsd.sqlite"),
   sessionSecret: process.env.SESSION_SECRET || "dev-only-change-me",
-  uploadDir: process.env.UPLOAD_DIR || path.join(rootDir, "public", "uploads"),
+  uploadDir: path.join(rootDir, "public", "uploads"),
   maxUploadBytes: 50 * 1024 * 1024
 };

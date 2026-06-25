@@ -2,7 +2,7 @@ import { createApp } from "./app.js";
 import { config } from "./config.js";
 
 const app = createApp();
-const host = process.env.HOST || (process.env.NODE_ENV === "production" ? "0.0.0.0" : "127.0.0.1");
+const host = process.env.HOST || "127.0.0.1";
 
 app.on("error", (error) => {
   console.error(`SurfSD failed to start: ${error.message}`);

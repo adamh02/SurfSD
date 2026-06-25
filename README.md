@@ -12,7 +12,7 @@ SurfSD is a full stack web application I made to make local surf conditions more
 
 Users can explore surf spots on an interactive map, view current swell, tide, and weather information, create an account, and publish a report with wave height, an optional rating, a description, and an optional video.
 
-This is an ongoing student project, so I am continuing to improve the design, data accuracy, uploads, and deployment setup.
+This is an ongoing student project, so I am continuing to improve the design, data accuracy, uploads, and overall user experience.
 
 ### Surf Map
 
@@ -139,16 +139,6 @@ The tests cover:
 - Upload-size error handling
 - Rising and falling tide calculations
 
-## Deployment
-
-This project includes a Render blueprint in `render.yaml`.
-
-1. Push this repository to GitHub.
-2. In Render, create a new Blueprint and select the repository.
-3. Apply the generated `surfsd` web service.
-
-The blueprint runs `npm ci`, starts the app with `npm start`, binds the server to `0.0.0.0`, generates `SESSION_SECRET`, and stores SQLite plus uploads on a persistent disk mounted at `/var/data`.
-
 ## Structure
 
 ```text
@@ -174,7 +164,6 @@ SurfSD/
 
 ## Current Limitations
 
-- The application currently runs locally and does not have a public deployment.
 - Uploaded videos are saved to local storage, which is intended for demonstrations rather than a large public platform.
 - Sessions are stored in memory and reset when the server restarts.
 - SQLite is a good fit for the current version but would need a production hosting plan for a larger application.
@@ -182,7 +171,6 @@ SurfSD/
 
 ## Future Improvements
 
-- Deploy a public read only or rate limited demo
 - Move report media to secure cloud storage
 - Store sessions in a persistent database
 - Add report editing, deleting, and moderation

@@ -2,8 +2,8 @@ import { listSurfSpots } from "./db.js";
 
 export function layout({ title, user, body, flash = "" }) {
   const navUser = user
-    ? `<span class="nav-user">Hi, ${escapeHtml(user.name)}</span><a href="/logout">Log out</a>`
-    : `<a href="/account">Log in</a>`;
+    ? `<span class="nav-user">Hi, ${escapeHtml(user.name)}</span><a href="/logout">Log Out</a>`
+    : `<a href="/account">Log In</a>`;
 
   return `<!doctype html>
   <html lang="en">
@@ -40,7 +40,7 @@ export function aboutPage(context) {
     title: "About",
     body: `<section class="page-band">
       <div class="content narrow">
-        <h1>What is SurfSD?</h1>
+        <h1>What Is SurfSD?</h1>
         <p class="lead">SurfSD is a community driven surf reporting platform built specifically for San Diego surfers. The platform allows users to post real time surf reports, including wave ratings, estimated wave heights, photos, and videos from local surf spots across the county.</p>
         <p class="lead">The goal of SurfSD is to make current surf conditions more accessible through firsthand reports from the people actually in the water. While surf cams and swell forecasts are valuable tools, they don't always tell the full story. SurfSD bridges that gap by providing live, crowd sourced updates from local surfers.</p>
         <p class="lead">Currently focused exclusively on San Diego, SurfSD is an active and evolving project with plans to expand to surf communities around the world in the future.</p>
@@ -54,18 +54,18 @@ export function accountPage({ user, recentReport, error = "", next = "" }) {
   const body = user
     ? `<section class="page-band"><div class="content narrow">
         <p class="eyebrow">Account</p>
-        <h1>Your account</h1>
+        <h1>Your Account</h1>
         <dl class="account-details">
           <div><dt>Username</dt><dd>${escapeHtml(user.name)}</dd></div>
           <div><dt>Email</dt><dd>${escapeHtml(user.email)}</dd></div>
           <div><dt>Most Recent Report</dt><dd>${recentReport ? recentReportSummary(recentReport) : "No reports yet"}</dd></div>
           <div><dt>Member Since</dt><dd>${formatDate(user.createdAt)}</dd></div>
         </dl>
-        <a class="button" href="/logout">Log out</a>
+        <a class="button" href="/logout">Log Out</a>
       </div></section>`
     : `<section class="auth-grid content">
-        ${authForm("Sign up", "/signup", next, ["name", "email", "password"])}
-        ${authForm("Log in", "/login", next, ["email", "password"])}
+        ${authForm("Sign Up", "/signup", next, ["name", "email", "password"])}
+        ${authForm("Log In", "/login", next, ["email", "password"])}
       </section>`;
 
   return layout({ title: "Account", user, flash: error, body });
@@ -75,9 +75,9 @@ function authForm(title, action, next, fields) {
   return `<form class="panel" method="post" action="${action}">
     <h1>${title}</h1>
     <input type="hidden" name="next" value="${escapeHtml(next)}">
-    ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" required minlength="2"></label>` : ""}
-    <label>Email<input name="email" type="email" autocomplete="email" required></label>
-    <label>Password<input name="password" type="password" autocomplete="${title === "Sign up" ? "new-password" : "current-password"}" required minlength="8"></label>
+    ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" placeholder="Adam" required minlength="2"></label>` : ""}
+    <label>Email<input name="email" type="email" autocomplete="email" placeholder="you@example.com" required></label>
+    <label>Password<input name="password" type="password" autocomplete="${title === "Sign Up" ? "new-password" : "current-password"}" placeholder="At least 8 characters" required minlength="8"></label>
     <button class="button" type="submit">${title}</button>
   </form>`;
 }
@@ -99,8 +99,8 @@ export function mapPage(context) {
         <h1>SurfSD</h1>
         <p>A live San Diego surf map for checking local breaks, current ocean conditions, and community reports from surfers nearby.</p>
         <div class="map-summary">
-          <span><strong>${spots.length}</strong> spots</span>
-          <span><strong>Live</strong> conditions</span>
+          <span><strong>${spots.length}</strong> Spots</span>
+          <span><strong>Live</strong> Conditions</span>
         </div>
       </div>
       <div id="surf-map" data-spots="${spotData}"></div>
@@ -111,6 +111,7 @@ export function mapPage(context) {
           <div><dt>Tide</dt><dd>${escapeHtml(conditions.tide)}</dd></div>
           <div><dt>Weather</dt><dd>${escapeHtml(conditions.weather)}</dd></div>
         </dl>
+        <p class="source-note">Sources: NOAA NDBC, NOAA Tides & Currents, National Weather Service</p>
       </aside>
     </section>`
   });
@@ -128,15 +129,15 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
         <h1>${escapeHtml(spot.name)}</h1>
         <p>${escapeHtml(spot.description)}</p>
         <div class="condition-strip">
-          <span><strong>Swell</strong><em>${escapeHtml(conditions.swell)}</em></span>
-          <span><strong>Tide</strong><em>${escapeHtml(conditions.tide)}</em></span>
-          <span><strong>Weather</strong><em>${escapeHtml(conditions.weather)}</em></span>
+          <span><strong>Swell</strong><em>${escapeHtml(conditions.swell)}</em><small>NOAA NDBC</small></span>
+          <span><strong>Tide</strong><em>${escapeHtml(conditions.tide)}</em><small>NOAA Tides & Currents</small></span>
+          <span><strong>Weather</strong><em>${escapeHtml(conditions.weather)}</em><small>National Weather Service</small></span>
         </div>
         <a class="button" href="/spots/${escapeHtml(spot.slug)}/reports/new">+ Create Report</a>
       </div>
     </section>
     <section class="content reports-section">
-      <h2>Recent reports</h2>
+      <h2>Recent Reports</h2>
       ${reports.length ? `<div class="report-grid">${reports.map(reportCard).join("")}</div>` : `<p class="empty">No reports yet. Be the first to share what you see.</p>`}
     </section>`
   });
@@ -148,10 +149,10 @@ function reportCard(report) {
     <div>
       <p>${escapeHtml(report.description)}</p>
       <div class="meta">
-        <span>${escapeHtml(report.waveHeight)} ft</span>
-        ${report.rating ? `<span>${escapeHtml(report.rating)}/10</span>` : `<span>No rating</span>`}
-        <span>${escapeHtml(formatRelativeTime(report.createdAt))}</span>
-        <span>${escapeHtml(report.userName)}</span>
+        <span><strong>Wave Height</strong><em>${escapeHtml(report.waveHeight)} ft</em></span>
+        <span><strong>Rating</strong><em>${report.rating ? `${escapeHtml(report.rating)}/10` : "No rating"}</em></span>
+        <span><strong>Date</strong><em>${escapeHtml(formatRelativeTime(report.createdAt))}</em></span>
+        <span><strong>Posted By</strong><em>${escapeHtml(report.userName)}</em></span>
       </div>
     </div>
   </article>`;
@@ -170,14 +171,14 @@ export function reportFormPage({ user, spot, error = "", values = {} }) {
     title: `Create Report for ${spot.name}`,
     user,
     flash: error,
-    body: `<section class="page-band"><form class="content narrow panel" method="post" enctype="multipart/form-data" action="/spots/${escapeHtml(spot.slug)}/reports">
+    body: `<section class="page-band report-page"><form class="content narrow panel report-form" method="post" enctype="multipart/form-data" action="/spots/${escapeHtml(spot.slug)}/reports">
       <p class="eyebrow">${escapeHtml(spot.name)}</p>
-      <h1>Create surf report</h1>
-      <label>Video (Optional)<input type="file" name="video" accept="video/mp4,video/webm,video/quicktime"></label>
-      <label>Description<textarea name="description" maxlength="280" required>${escapeHtml(values.description || "")}</textarea></label>
-      <label>Wave Height (Feet)<input type="number" name="waveHeight" min="1" max="100" value="${escapeHtml(values.waveHeight || "")}" required></label>
-      <label>Rating, 1-10 (Optional)<input type="number" name="rating" min="1" max="10" value="${escapeHtml(values.rating || "")}"></label>
-      <button class="button" type="submit">Save report</button>
+      <h1>Create Surf Report</h1>
+      <label>Video (Optional)<span class="field-hint">Upload a short MP4, WebM, or MOV clip of the current conditions.</span><input type="file" name="video" accept="video/mp4,video/webm,video/quicktime"></label>
+      <label>Description<span class="field-hint">Tell surfers what you are seeing from the beach.</span><textarea name="description" maxlength="280" placeholder="Example: 3-4 ft and clean with a light offshore breeze. Best sets are lining up near the south peak." required>${escapeHtml(values.description || "")}</textarea></label>
+      <label>Wave Height (Feet)<span class="field-hint">Enter the average face height you are seeing.</span><input type="number" name="waveHeight" min="1" max="100" placeholder="4" value="${escapeHtml(values.waveHeight || "")}" required></label>
+      <label>Rating, 1-10 (Optional)<span class="field-hint">Use 1 for poor conditions and 10 for excellent conditions.</span><input type="number" name="rating" min="1" max="10" placeholder="7" value="${escapeHtml(values.rating || "")}"></label>
+      <button class="button" type="submit">Save Report</button>
     </form></section>`
   });
 }

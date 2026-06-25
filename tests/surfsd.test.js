@@ -159,7 +159,7 @@ test("surf spot pages load correctly", async () => {
     const { response, text } = await client.get("/spots/swamis");
     assert.equal(response.status, 200);
     assert.match(text, /Swami&#039;s/);
-    assert.match(text, /Recent reports/);
+    assert.match(text, /Recent Reports/);
   } finally {
     await client.cleanup();
   }
@@ -201,7 +201,7 @@ test("oversized requests return an error without taking down the app", async () 
 
     const mapPage = await client.get("/map");
     assert.equal(mapPage.response.status, 200);
-    assert.match(mapPage.text, /San Diego surf spots/);
+    assert.match(mapPage.text, /SurfSD/);
   } finally {
     await client.cleanup();
   }

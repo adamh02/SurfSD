@@ -139,6 +139,16 @@ The tests cover:
 - Upload-size error handling
 - Rising and falling tide calculations
 
+## Deployment
+
+This project includes a Render blueprint in `render.yaml`.
+
+1. Push this repository to GitHub.
+2. In Render, create a new Blueprint and select the repository.
+3. Apply the generated `surfsd` web service.
+
+The blueprint runs `npm ci`, starts the app with `npm start`, binds the server to `0.0.0.0`, generates `SESSION_SECRET`, and stores SQLite plus uploads on a persistent disk mounted at `/var/data`.
+
 ## Structure
 
 ```text

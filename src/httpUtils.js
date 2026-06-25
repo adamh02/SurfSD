@@ -96,6 +96,10 @@ export async function readMultipartForm(request) {
 export function serveStatic(request, response) {
   const url = new URL(request.url, "http://localhost");
   const requestedPath = path.normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, "");
+  if (requestedPath.startsWith("/uploads/")) {
+    return serveUploadedFile(requestedPath, response);
+  }
+
   const filePath = path.join(config.rootDir, "public", requestedPath.replace(/^\/public\//, ""));
 
   if (!filePath.startsWith(path.join(config.rootDir, "public"))) {
@@ -110,6 +114,25 @@ export function serveStatic(request, response) {
   const extension = path.extname(filePath).toLowerCase();
   response.writeHead(200, { "Content-Type": mimeTypes[extension] || "application/octet-stream" });
   fs.createReadStream(filePath).pipe(response);
+  return true;
+}
+
+function serveUploadedFile(requestedPath, response) {
+  const uploadRoot = path.resolve(config.uploadDir);
+  const uploadPath = path.resolve(uploadRoot, requestedPath.replace(/^\/uploads\//, ""));
+
+  if (!uploadPath.startsWith(uploadRoot)) {
+    response.notFound();
+    return true;
+  }
+
+  if (!fs.existsSync(uploadPath) || fs.statSync(uploadPath).isDirectory()) {
+    return false;
+  }
+
+  const extension = path.extname(uploadPath).toLowerCase();
+  response.writeHead(200, { "Content-Type": mimeTypes[extension] || "application/octet-stream" });
+  fs.createReadStream(uploadPath).pipe(response);
   return true;
 }
 

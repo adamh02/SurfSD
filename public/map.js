@@ -1,10 +1,13 @@
 window.addEventListener("DOMContentLoaded", () => {
+  initializeHeaderScroll();
+
   const mapElement = document.querySelector("#surf-map");
   if (!mapElement || !window.L) return;
 
   const spots = JSON.parse(mapElement.dataset.spots || "[]");
   const mapShell = mapElement.closest(".map-shell");
-  const map = L.map(mapElement, { scrollWheelZoom: true }).setView([32.92, -117.28], 10);
+  const map = L.map(mapElement, { scrollWheelZoom: true, zoomControl: false }).setView([32.92, -117.28], 10);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 18,
@@ -28,9 +31,17 @@ window.addEventListener("DOMContentLoaded", () => {
       .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}<br><a href="/spots/${spot.slug}">View</a>`);
   });
 
-  if (markerBounds.length) {
-    map.fitBounds(markerBounds, { padding: [40, 40], maxZoom: 10 });
-  }
+  const resetView = () => {
+    if (markerBounds.length) {
+      map.flyToBounds(markerBounds, { padding: [40, 40], maxZoom: 10, duration: 0.7 });
+      return;
+    }
+
+    map.flyTo([32.92, -117.28], 10, { duration: 0.7 });
+  };
+
+  resetView();
+  addResetControl(map, resetView);
 
   const hidePanels = () => {
     mapShell?.classList.add("map-panels-hidden");
@@ -38,3 +49,55 @@ window.addEventListener("DOMContentLoaded", () => {
 
   map.on("click dragstart zoomstart popupopen", hidePanels);
 });
+
+function addResetControl(map, resetView) {
+  const resetControl = L.control({ position: "bottomright" });
+
+  resetControl.onAdd = () => {
+    const container = L.DomUtil.create("div", "leaflet-bar reset-view-control");
+    const button = L.DomUtil.create("button", "", container);
+    button.type = "button";
+    button.setAttribute("aria-label", "Reset map view");
+    button.title = "Reset map view";
+    button.textContent = "↺";
+
+    L.DomEvent.disableClickPropagation(container);
+    L.DomEvent.on(button, "click", (event) => {
+      L.DomEvent.stop(event);
+      resetView();
+    });
+
+    return container;
+  };
+
+  resetControl.addTo(map);
+}
+
+function initializeHeaderScroll() {
+  const header = document.querySelector(".site-header");
+  if (!header) return;
+
+  let lastScrollY = window.scrollY;
+  let ticking = false;
+
+  const updateHeader = () => {
+    const currentScrollY = window.scrollY;
+    const isScrollingDown = currentScrollY > lastScrollY + 2;
+    const isScrollingUp = currentScrollY < lastScrollY - 2;
+
+    if (currentScrollY <= 40 || isScrollingUp) {
+      header.classList.remove("header-hidden");
+    } else if (isScrollingDown && currentScrollY > 72) {
+      header.classList.add("header-hidden");
+    }
+
+    lastScrollY = Math.max(currentScrollY, 0);
+    ticking = false;
+  };
+
+  window.addEventListener("scroll", () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(updateHeader);
+  }, { passive: true });
+}

@@ -268,7 +268,10 @@ p {
 }
 
 .report-form h1 {
-  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  font-size: clamp(2.4rem, 4.5vw, 4rem);
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
   margin-bottom: clamp(22px, 3vw, 34px);
 }
 
@@ -783,6 +786,20 @@ textarea {
   margin-bottom: 16px;
 }
 
+.edited-label {
+  background: rgba(7, 29, 38, 0.08);
+  border-radius: 999px;
+  color: var(--muted);
+  display: inline-flex;
+  font-size: 0.66rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  margin-left: 6px;
+  padding: 4px 7px;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
 .meta {
   color: var(--muted);
   display: grid;
@@ -847,6 +864,118 @@ textarea {
   background: rgba(7, 29, 38, 0.9);
   border-color: rgba(7, 29, 38, 0.9);
   color: var(--white);
+}
+
+.report-comments {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+  padding-top: 14px;
+}
+
+.report-comments h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 0 0 10px;
+}
+
+.comment-list {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.comment {
+  background: rgba(229, 244, 243, 0.55);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.comment-body {
+  display: grid;
+  gap: 5px;
+}
+
+.comment strong {
+  color: var(--ink);
+  display: block;
+  font-size: 0.82rem;
+  margin-bottom: 4px;
+}
+
+.comment p,
+.no-comments,
+.comment-login {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0;
+}
+
+.comment .comment-form {
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-top: 10px;
+  padding: 10px;
+}
+
+.comment-delete-form {
+  margin-top: 4px;
+}
+
+.comment-delete-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: rgba(96, 119, 128, 0.82);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 850;
+  padding: 0;
+}
+
+.comment-delete-button:hover {
+  color: #b42318;
+  text-decoration: underline;
+}
+
+.comment .comment-form textarea {
+  min-height: 52px;
+}
+
+.comment-replies {
+  border-left: 3px solid rgba(0, 153, 169, 0.2);
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-left: 12px;
+}
+
+.reply-comment {
+  background: rgba(255, 255, 255, 0.62);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.comment-form {
+  display: grid;
+  gap: 8px;
+}
+
+.comment-form label {
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.comment-form textarea {
+  min-height: 82px;
+}
+
+.small-button {
+  justify-self: start;
+  padding: 10px 16px;
 }
 
 .account-details {
@@ -967,6 +1096,52 @@ textarea {
   max-width: 42ch;
 }
 
+.history-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+}
+
+.text-action-link,
+.text-danger-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  padding: 0;
+  text-transform: uppercase;
+}
+
+.text-action-link {
+  color: var(--sea-dark);
+  text-decoration: none;
+}
+
+.text-action-link:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.text-danger-button {
+  color: #b42318;
+}
+
+.text-danger-button:hover {
+  color: #7a1a12;
+  text-decoration: underline;
+}
+
+.form-return-link {
+  display: inline-flex;
+  margin-top: 8px;
+}
+
 .history-item dl {
   display: grid;
   gap: 14px;
@@ -1062,7 +1237,7 @@ textarea {
   }
 
   .report-form h1 {
-    font-size: clamp(2.4rem, 10vw, 3.6rem);
+    font-size: clamp(2.25rem, 9vw, 3.2rem);
   }
 
   .map-shell {

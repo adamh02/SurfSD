@@ -1,5 +1,6 @@
 window.addEventListener("DOMContentLoaded", () => {
   initializeHeaderScroll();
+  initializeConfirmForms();
 
   const mapElement = document.querySelector("#surf-map");
   if (!mapElement || !window.L) return;
@@ -28,7 +29,7 @@ window.addEventListener("DOMContentLoaded", () => {
     markerBounds.push([spot.latitude, spot.longitude]);
     L.marker([spot.latitude, spot.longitude], { icon: markerIcon(spot) })
       .addTo(map)
-      .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}${spot.hasReportToday ? "<br>New report today" : ""}<br><a href="/spots/${spot.slug}">View</a>`);
+      .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}${spot.hasReportToday ? "<br>New Report Today" : ""}<br><a href="/spots/${spot.slug}">View</a>`);
   });
 
   const resetView = () => {
@@ -49,6 +50,17 @@ window.addEventListener("DOMContentLoaded", () => {
 
   map.on("click dragstart zoomstart popupopen", hidePanels);
 });
+
+function initializeConfirmForms() {
+  document.querySelectorAll("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      const message = form.dataset.confirm || "Are you sure?";
+      if (!window.confirm(message)) {
+        event.preventDefault();
+      }
+    });
+  });
+}
 
 function addResetControl(map, resetView) {
   const resetControl = L.control({ position: "bottomright" });

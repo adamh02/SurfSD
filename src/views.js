@@ -115,6 +115,12 @@ function accountReport(report) {
     <div>
       <a href="/spots/${escapeHtml(report.surfSpotSlug)}">${escapeHtml(report.surfSpotName)}</a>
       <p>${escapeHtml(report.description)}</p>
+      <div class="history-actions">
+        ${canEditReport(report) ? `<a class="text-action-link" href="/reports/${escapeHtml(report.id)}/edit">Edit Report</a>` : ""}
+        <form method="post" action="/reports/${escapeHtml(report.id)}/delete" data-confirm="Are you sure you want to delete this surf report?">
+        <button class="text-danger-button" type="submit">Delete Report</button>
+        </form>
+      </div>
     </div>
     <dl>
       <div><dt>Wave Height</dt><dd>${escapeHtml(report.waveHeight)} ft</dd></div>
@@ -188,24 +194,69 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
     </section>
     <section class="content reports-section">
       <h2>Recent Reports</h2>
-      ${reports.length ? `<div class="report-grid">${reports.map(reportCard).join("")}</div>` : `<p class="empty">No reports yet. Be the first to share what you see.</p>`}
+      ${reports.length ? `<div class="report-grid">${reports.map((report) => reportCard(report, { user, spot })).join("")}</div>` : `<p class="empty">No reports yet. Be the first to share what you see.</p>`}
     </section>`
   });
 }
 
-function reportCard(report) {
-  return `<article class="report-card">
+function reportCard(report, { user, spot }) {
+  return `<article class="report-card" id="report-${escapeHtml(report.id)}">
     ${report.imageUrl ? reportMedia(report.imageUrl) : `<div class="report-media-placeholder">No video</div>`}
     <div>
-      <p>${escapeHtml(report.description)}</p>
+      <p>${escapeHtml(report.description)}${report.editedAt ? ` <span class="edited-label">Edited</span>` : ""}</p>
       <div class="meta">
         <span><strong>Wave Height</strong><em>${escapeHtml(report.waveHeight)} ft</em></span>
         <span><strong>Rating</strong><em>${ratingSummary(report.rating)}</em></span>
         <span><strong>Date</strong><em>${escapeHtml(formatRelativeTime(report.createdAt))}</em></span>
         <span><strong>Posted By</strong><em class="report-author">${escapeHtml(report.userName)}${reportBadge(report.userReportCount)}</em></span>
       </div>
+      ${reportComments(report, { user, spot })}
     </div>
   </article>`;
+}
+
+function reportComments(report, { user, spot }) {
+  const comments = report.comments || [];
+  const topLevelComments = comments.filter((comment) => !comment.parentCommentId);
+  return `<section class="report-comments">
+    <h3>Comments</h3>
+    ${topLevelComments.length ? `<div class="comment-list">${topLevelComments.map((comment) => commentThread(comment, comments, report, spot, user)).join("")}</div>` : `<p class="no-comments">No comments yet.</p>`}
+    ${user ? commentForm(report, spot) : `<p class="comment-login">Log in to comment.</p>`}
+  </section>`;
+}
+
+function commentForm(report, spot, parentCommentId = "") {
+  return `<form class="comment-form" method="post" action="/reports/${escapeHtml(report.id)}/comments">
+    <input type="hidden" name="next" value="/spots/${escapeHtml(spot.slug)}">
+    ${parentCommentId ? `<input type="hidden" name="parentCommentId" value="${escapeHtml(parentCommentId)}">` : ""}
+    <label>${parentCommentId ? "Reply" : "Comment"}<textarea name="body" maxlength="180" placeholder="${parentCommentId ? "Reply to this comment..." : "Add a helpful note..."}" required></textarea></label>
+    <button class="button small-button" type="submit">${parentCommentId ? "Post Reply" : "Post Comment"}</button>
+  </form>`;
+}
+
+function commentThread(comment, allComments, report, spot, user) {
+  const replies = allComments.filter((reply) => Number(reply.parentCommentId) === Number(comment.id));
+  return `<article class="comment" id="comment-${escapeHtml(comment.id)}">
+    ${commentBody(comment, report, spot, user)}
+    ${user ? commentForm(report, spot, comment.id) : ""}
+    ${replies.length ? `<div class="comment-replies">${replies.map((reply) => `<article class="comment reply-comment" id="comment-${escapeHtml(reply.id)}">${commentBody(reply, report, spot, user)}</article>`).join("")}</div>` : ""}
+  </article>`;
+}
+
+function commentBody(comment, report, spot, user) {
+  return `<div class="comment-body">
+    <strong>${escapeHtml(comment.userName)}</strong>
+    <p>${escapeHtml(comment.body)}</p>
+    ${user?.id === comment.userId ? deleteCommentForm(comment, report, spot) : ""}
+  </div>`;
+}
+
+function deleteCommentForm(comment, report, spot) {
+  return `<form class="comment-delete-form" method="post" action="/comments/${escapeHtml(comment.id)}/delete" data-confirm="Are you sure you want to delete this comment?">
+    <input type="hidden" name="next" value="/spots/${escapeHtml(spot.slug)}">
+    <input type="hidden" name="reportId" value="${escapeHtml(report.id)}">
+    <button class="comment-delete-button" type="submit">Delete</button>
+  </form>`;
 }
 
 function reportBadge(reportCount = 0) {
@@ -250,6 +301,24 @@ export function reportFormPage({ user, spot, error = "", values = {} }) {
       <label>Wave Height (Feet)<span class="field-hint">Enter the average face height you are seeing.</span><input type="number" name="waveHeight" min="1" max="100" placeholder="4" value="${escapeHtml(values.waveHeight || "")}" required></label>
       <label>Rating, 1-10 (Optional)<span class="field-hint">Use 1 for poor conditions and 10 for excellent conditions.</span><input type="number" name="rating" min="1" max="10" placeholder="7" value="${escapeHtml(values.rating || "")}"></label>
       <button class="button" type="submit">Save Report</button>
+    </form></section>`
+  });
+}
+
+export function editReportPage({ user, report, error = "" }) {
+  return layout({
+    title: `Edit Report for ${report.surfSpotName}`,
+    user,
+    flash: error,
+    body: `<section class="page-band report-page"><form class="content narrow panel report-form" method="post" action="/reports/${escapeHtml(report.id)}/edit">
+      <p class="eyebrow">${escapeHtml(report.surfSpotName)}</p>
+      <h1>Edit report</h1>
+      <p class="field-hint">Reports can only be edited within 3 hours of posting. Edited reports show an Edited label.</p>
+      <label>Description<span class="field-hint">Update what surfers should know about the conditions.</span><textarea name="description" maxlength="280" required>${escapeHtml(report.description || "")}</textarea></label>
+      <label>Wave Height (Feet)<span class="field-hint">Enter the average face height you are seeing.</span><input type="number" name="waveHeight" min="1" max="100" value="${escapeHtml(report.waveHeight || "")}" required></label>
+      <label>Rating, 1-10 (Optional)<span class="field-hint">Use 1 for poor conditions and 10 for excellent conditions.</span><input type="number" name="rating" min="1" max="10" value="${escapeHtml(report.rating || "")}"></label>
+      <button class="button" type="submit">Save Changes</button>
+      <a class="text-action-link form-return-link" href="/account">Back To Account</a>
     </form></section>`
   });
 }
@@ -305,4 +374,8 @@ function parseSqliteDate(value) {
     return new Date(`${value.replace(" ", "T")}Z`);
   }
   return new Date(value);
+}
+
+function canEditReport(report) {
+  return Date.now() - parseSqliteDate(report.createdAt).getTime() <= 3 * 60 * 60 * 1000;
 }

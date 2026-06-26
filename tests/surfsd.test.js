@@ -153,7 +153,434 @@ test("account page lists profile settings and report history", async () => {
     assert.match(text, /Your Reports/);
     assert.match(text, /Account page report test\./);
     assert.match(text, /8\/10 - Good/);
+    assert.match(text, /Edit Report/);
+    assert.match(text, /Delete Report/);
+    assert.match(text, /data-confirm="Are you sure you want to delete this surf report\?"/);
     assert.match(text, /Member Since/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can delete their own reports", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "DeleteOwner",
+      email: "delete-owner@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Delete this report.",
+      waveHeight: "4",
+      rating: "7"
+    });
+
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+    const deleted = await client.postForm(`/reports/${report.id}/delete`, {});
+    assert.equal(deleted.response.status, 303);
+    assert.equal(deleted.response.headers.get("location"), "/account?message=Report Deleted");
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM reports").get().count, 0);
+
+    const account = await client.get("/account");
+    assert.match(account.text, /No reports yet/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users cannot delete another user's report", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ReportOwner",
+      email: "report-owner@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Someone else's report.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+
+    await client.get("/logout");
+    await client.postForm("/signup", {
+      name: "OtherUser",
+      email: "other-user@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const blocked = await client.postForm(`/reports/${report.id}/delete`, {});
+    assert.equal(blocked.response.status, 303);
+    assert.equal(blocked.response.headers.get("location"), "/account?error=Report could not be deleted.");
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM reports").get().count, 1);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can edit their own reports within three hours", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "EditOwner",
+      email: "edit-owner@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Original report text.",
+      waveHeight: "4",
+      rating: "6"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+
+    const editPage = await client.get(`/reports/${report.id}/edit`);
+    assert.equal(editPage.response.status, 200);
+    assert.match(editPage.text, /Edit report/);
+
+    const updated = await client.postForm(`/reports/${report.id}/edit`, {
+      description: "Updated report text.",
+      waveHeight: "5",
+      rating: "8"
+    });
+    assert.equal(updated.response.status, 303);
+    assert.equal(updated.response.headers.get("location"), "/account?message=Report Updated");
+
+    const stored = getDatabase().prepare("SELECT * FROM reports WHERE id = ?").get(report.id);
+    assert.equal(stored.description, "Updated report text.");
+    assert.equal(stored.waveHeight, 5);
+    assert.equal(stored.rating, 8);
+    assert.ok(stored.editedAt);
+
+    const spotPage = await client.get("/spots/swamis");
+    assert.match(spotPage.text, /Updated report text\./);
+    assert.match(spotPage.text, /Edited/);
+    assert.match(spotPage.text, /8\/10 - Good/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users cannot edit reports after three hours", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "LateEditor",
+      email: "late-editor@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Old report text.",
+      waveHeight: "4",
+      rating: "6"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+    getDatabase()
+      .prepare("UPDATE reports SET createdAt = datetime('now', '-4 hours') WHERE id = ?")
+      .run(report.id);
+
+    const editPage = await client.get(`/reports/${report.id}/edit`);
+    assert.equal(editPage.response.status, 303);
+    assert.equal(editPage.response.headers.get("location"), "/account?error=Reports can only be edited within 3 hours.");
+
+    const blocked = await client.postForm(`/reports/${report.id}/edit`, {
+      description: "Late update.",
+      waveHeight: "6",
+      rating: "9"
+    });
+    assert.equal(blocked.response.status, 303);
+    assert.equal(blocked.response.headers.get("location"), "/account?error=Reports can only be edited within 3 hours.");
+
+    const stored = getDatabase().prepare("SELECT * FROM reports WHERE id = ?").get(report.id);
+    assert.equal(stored.description, "Old report text.");
+    assert.equal(stored.editedAt, null);
+
+    const account = await client.get("/account");
+    assert.doesNotMatch(account.text, /Edit Report/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can comment on surf reports", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ReportPoster",
+      email: "poster@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Comment target report.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+
+    await client.get("/logout");
+    await client.postForm("/signup", {
+      name: "Commenter",
+      email: "commenter@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const posted = await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Thanks for the update!",
+      next: "/spots/swamis"
+    });
+    assert.equal(posted.response.status, 303);
+    assert.equal(posted.response.headers.get("location"), `/spots/swamis#report-${report.id}`);
+
+    const spotPage = await client.get("/spots/swamis");
+    assert.match(spotPage.text, /Comments/);
+    assert.match(spotPage.text, /Commenter/);
+    assert.match(spotPage.text, /Thanks for the update!/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can reply to a specific comment", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ThreadPoster",
+      email: "thread-poster@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Threaded comment target.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+
+    const firstComment = await client.postForm(`/reports/${report.id}/comments`, {
+      body: "First comment in the thread.",
+      next: "/spots/swamis"
+    });
+    assert.equal(firstComment.response.headers.get("location"), `/spots/swamis#report-${report.id}`);
+    const parentComment = getDatabase().prepare("SELECT * FROM comments WHERE reportId = ?").get(report.id);
+
+    const reply = await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Replying directly to that comment.",
+      parentCommentId: String(parentComment.id),
+      next: "/spots/swamis"
+    });
+    assert.equal(reply.response.status, 303);
+    assert.equal(reply.response.headers.get("location"), `/spots/swamis#report-${report.id}`);
+
+    const comments = getDatabase().prepare("SELECT * FROM comments ORDER BY id").all();
+    assert.equal(comments.length, 2);
+    assert.equal(comments[1].parentCommentId, parentComment.id);
+
+    const spotPage = await client.get("/spots/swamis");
+    assert.match(spotPage.text, /First comment in the thread\./);
+    assert.match(spotPage.text, /Replying directly to that comment\./);
+    assert.match(spotPage.text, /comment-replies/);
+    assert.match(spotPage.text, /Post Reply/);
+    assert.equal((spotPage.text.match(/Post Reply/g) || []).length, 1);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("comment replies must belong to the same report", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ReplyGuard",
+      email: "reply-guard@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "First report.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    await client.postMultipart("/spots/windansea/reports", {
+      description: "Second report.",
+      waveHeight: "5",
+      rating: "8"
+    });
+    const reports = getDatabase().prepare("SELECT * FROM reports ORDER BY id").all();
+
+    await client.postForm(`/reports/${reports[0].id}/comments`, {
+      body: "Parent belongs to the first report.",
+      next: "/spots/swamis"
+    });
+    const parentComment = getDatabase().prepare("SELECT * FROM comments WHERE reportId = ?").get(reports[0].id);
+
+    const blocked = await client.postForm(`/reports/${reports[1].id}/comments`, {
+      body: "This reply should not attach.",
+      parentCommentId: String(parentComment.id),
+      next: "/spots/windansea"
+    });
+    assert.equal(blocked.response.status, 303);
+    assert.equal(blocked.response.headers.get("location"), `/spots/windansea?error=Comment%20could%20not%20be%20posted.#report-${reports[1].id}`);
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM comments").get().count, 1);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can delete their own comments", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "CommentOwner",
+      email: "comment-owner@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Comment delete target.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Delete this comment.",
+      next: "/spots/swamis"
+    });
+    const comment = getDatabase().prepare("SELECT * FROM comments").get();
+
+    const deleted = await client.postForm(`/comments/${comment.id}/delete`, {
+      next: "/spots/swamis",
+      reportId: String(report.id)
+    });
+    assert.equal(deleted.response.status, 303);
+    assert.equal(deleted.response.headers.get("location"), `/spots/swamis#report-${report.id}`);
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM comments").get().count, 0);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("comment delete forms use confirmation prompts", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ConfirmComment",
+      email: "confirm-comment@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Confirm comment target.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Confirm before deleting this.",
+      next: "/spots/swamis"
+    });
+
+    const spotPage = await client.get("/spots/swamis");
+    assert.match(spotPage.text, /comment-delete-button/);
+    assert.match(spotPage.text, /data-confirm="Are you sure you want to delete this comment\?"/);
+    assert.doesNotMatch(spotPage.text, /onclick="return confirm/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users cannot delete another user's comment", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "OriginalCommenter",
+      email: "original-commenter@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Comment ownership target.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Do not delete this.",
+      next: "/spots/swamis"
+    });
+    const comment = getDatabase().prepare("SELECT * FROM comments").get();
+
+    await client.get("/logout");
+    await client.postForm("/signup", {
+      name: "CommentIntruder",
+      email: "comment-intruder@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const blocked = await client.postForm(`/comments/${comment.id}/delete`, {
+      next: "/spots/swamis",
+      reportId: String(report.id)
+    });
+    assert.equal(blocked.response.status, 303);
+    assert.equal(blocked.response.headers.get("location"), `/spots/swamis?error=Comment%20could%20not%20be%20deleted.#report-${report.id}`);
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM comments").get().count, 1);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("deleting a parent comment removes its replies", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ThreadDeleter",
+      email: "thread-deleter@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Thread delete target.",
+      waveHeight: "4",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT * FROM reports").get();
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Parent comment.",
+      next: "/spots/swamis"
+    });
+    const parent = getDatabase().prepare("SELECT * FROM comments").get();
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Child reply.",
+      parentCommentId: String(parent.id),
+      next: "/spots/swamis"
+    });
+
+    const deleted = await client.postForm(`/comments/${parent.id}/delete`, {
+      next: "/spots/swamis",
+      reportId: String(report.id)
+    });
+    assert.equal(deleted.response.status, 303);
+    assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM comments").get().count, 0);
   } finally {
     await client.cleanup();
   }
@@ -282,6 +709,20 @@ test("local surf spot images load correctly", async () => {
     const { response } = await client.get("/spot-images/oceanside-pier.png");
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("content-type"), "image/png");
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("delete confirmations are wired without inline scripts", async () => {
+  const client = createTestClient();
+  try {
+    const { response, text } = await client.get("/map.js");
+    assert.equal(response.status, 200);
+    assert.match(text, /initializeConfirmForms/);
+    assert.match(text, /form\[data-confirm\]/);
+    assert.match(text, /window\.confirm/);
+    assert.match(text, /New Report Today/);
   } finally {
     await client.cleanup();
   }

@@ -55,12 +55,27 @@ function migrate() {
       description TEXT NOT NULL,
       waveHeight INTEGER NOT NULL,
       rating INTEGER,
+      editedAt TEXT,
       createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (surfSpotId) REFERENCES surf_spots(id) ON DELETE CASCADE,
       FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     );
+
+    CREATE TABLE IF NOT EXISTS comments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      reportId INTEGER NOT NULL,
+      userId INTEGER NOT NULL,
+      parentCommentId INTEGER,
+      body TEXT NOT NULL,
+      createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (reportId) REFERENCES reports(id) ON DELETE CASCADE,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (parentCommentId) REFERENCES comments(id) ON DELETE CASCADE
+    );
   `);
   migrateReportsOptionalFields();
+  migrateReportEdits();
+  migrateCommentReplies();
   migrateUserAccountSettings();
 }
 
@@ -98,6 +113,20 @@ function migrateReportsOptionalFields() {
     DROP TABLE reports;
     ALTER TABLE reports_new RENAME TO reports;
   `);
+}
+
+function migrateReportEdits() {
+  const columns = database.prepare("PRAGMA table_info(reports)").all();
+  if (!columns.some((column) => column.name === "editedAt")) {
+    database.exec("ALTER TABLE reports ADD COLUMN editedAt TEXT");
+  }
+}
+
+function migrateCommentReplies() {
+  const columns = database.prepare("PRAGMA table_info(comments)").all();
+  if (!columns.some((column) => column.name === "parentCommentId")) {
+    database.exec("ALTER TABLE comments ADD COLUMN parentCommentId INTEGER REFERENCES comments(id) ON DELETE CASCADE");
+  }
 }
 
 function seed() {
@@ -195,6 +224,17 @@ export function listReportsForUser(userId) {
     .all(userId);
 }
 
+export function findReportForUser(reportId, userId) {
+  return getDatabase()
+    .prepare(`
+      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug
+      FROM reports
+      JOIN surf_spots ON surf_spots.id = reports.surfSpotId
+      WHERE reports.id = ? AND reports.userId = ?
+    `)
+    .get(reportId, userId);
+}
+
 export function listSurfSpots() {
   return getDatabase()
     .prepare(`
@@ -227,6 +267,26 @@ export function createReport({ surfSpotId, userId, imageUrl, description, waveHe
   return result.lastInsertRowid;
 }
 
+export function updateReportForUser({ reportId, userId, description, waveHeight, rating }) {
+  const result = getDatabase()
+    .prepare(`
+      UPDATE reports
+      SET description = ?, waveHeight = ?, rating = ?, editedAt = CURRENT_TIMESTAMP
+      WHERE id = ?
+        AND userId = ?
+        AND datetime(createdAt) >= datetime('now', '-3 hours')
+    `)
+    .run(description, waveHeight, rating, reportId, userId);
+  return result.changes > 0;
+}
+
+export function deleteReportForUser(reportId, userId) {
+  const result = getDatabase()
+    .prepare("DELETE FROM reports WHERE id = ? AND userId = ?")
+    .run(reportId, userId);
+  return result.changes > 0;
+}
+
 export function listReportsForSpot(surfSpotId) {
   return getDatabase()
     .prepare(`
@@ -243,4 +303,44 @@ export function listReportsForSpot(surfSpotId) {
       ORDER BY reports.createdAt DESC, reports.id DESC
     `)
     .all(surfSpotId);
+}
+
+export function listCommentsForSpot(surfSpotId) {
+  return getDatabase()
+    .prepare(`
+      SELECT comments.*, users.name AS userName
+      FROM comments
+      JOIN users ON users.id = comments.userId
+      JOIN reports ON reports.id = comments.reportId
+      WHERE reports.surfSpotId = ?
+      ORDER BY comments.createdAt ASC, comments.id ASC
+    `)
+    .all(surfSpotId);
+}
+
+export function createComment({ reportId, userId, body, parentCommentId = null }) {
+  const result = getDatabase()
+    .prepare(`
+      INSERT INTO comments (reportId, userId, parentCommentId, body)
+      SELECT reports.id, ?, ?, ?
+      FROM reports
+      WHERE reports.id = ?
+        AND (
+          ? IS NULL OR EXISTS (
+            SELECT 1
+            FROM comments AS parent_comments
+            WHERE parent_comments.id = ?
+              AND parent_comments.reportId = reports.id
+          )
+        )
+    `)
+    .run(userId, parentCommentId, body, reportId, parentCommentId, parentCommentId);
+  return result.changes > 0;
+}
+
+export function deleteCommentForUser(commentId, userId) {
+  const result = getDatabase()
+    .prepare("DELETE FROM comments WHERE id = ? AND userId = ?")
+    .run(commentId, userId);
+  return result.changes > 0;
 }

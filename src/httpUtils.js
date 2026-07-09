@@ -2,6 +2,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { config } from "./config.js";
 
+// Tells the browser what kind of file it is receiving, like CSS, JavaScript,
+// image, or video.
 const mimeTypes = {
   ".css": "text/css",
   ".js": "text/javascript",
@@ -10,17 +12,20 @@ const mimeTypes = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
+  ".html": "text/html; charset=utf-8",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
   ".mov": "video/quicktime"
 };
 
+// Only these video formats can be uploaded with surf reports.
 const allowedVideoTypes = new Map([
   ["video/mp4", ".mp4"],
   ["video/webm", ".webm"],
   ["video/quicktime", ".mov"]
 ]);
 
+// Adds simple response shortcuts so route code is easier to read.
 export function decorateResponse(response) {
   response.html = (html, status = 200) => {
     response.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
@@ -37,12 +42,14 @@ export function decorateResponse(response) {
   };
 }
 
+// Reads simple forms, like login and signup.
 export async function readForm(request) {
   const body = await readBody(request, 1024 * 1024);
   const params = new URLSearchParams(body.toString());
   return Object.fromEntries(params.entries());
 }
 
+// Reads forms that include files, like the create-report form with a video.
 export async function readMultipartForm(request) {
   const contentType = request.headers["content-type"] || "";
   const boundary = contentType.match(/boundary=(.+)$/)?.[1];
@@ -54,6 +61,7 @@ export async function readMultipartForm(request) {
   let file;
   const errors = [];
 
+  // Pull out normal text fields plus one optional video file.
   for (const part of parts) {
     if (!part.includes("Content-Disposition")) continue;
     const [rawHeaders, rawValue] = part.split("\r\n\r\n");
@@ -81,6 +89,8 @@ export async function readMultipartForm(request) {
       continue;
     }
 
+    // Save the uploaded video under a new random-looking filename, so the user's
+    // original filename cannot overwrite another file.
     const safeName = `${Date.now()}-${cryptoRandom()}`;
     const extension = allowedVideoTypes.get(type);
     const relativePath = `/uploads/${safeName}${extension}`;
@@ -93,6 +103,8 @@ export async function readMultipartForm(request) {
   return { fields, file, errors };
 }
 
+// Serves files from the public folder. The path checks stop someone from asking
+// for files outside public.
 export function serveStatic(request, response) {
   const url = new URL(request.url, "http://localhost");
   const requestedPath = path.normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, "");
@@ -113,6 +125,8 @@ export function serveStatic(request, response) {
   return true;
 }
 
+// Reads submitted form data up to a size limit. If it is too big, the route can
+// show a friendly error.
 function readBody(request, limit) {
   return new Promise((resolve, reject) => {
     const chunks = [];
@@ -138,6 +152,7 @@ function readBody(request, limit) {
   });
 }
 
+// Adds random-looking text to uploaded filenames so names do not clash.
 function cryptoRandom() {
   return Math.random().toString(36).slice(2, 10);
 }

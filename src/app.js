@@ -8,24 +8,34 @@ import { aboutPage, accountPage, editReportPage, mapPage, reportFormPage, spotPa
 import { validateReport } from "./validation.js";
 import { getSpotConditions, placeholderConditions } from "./conditions.js";
 
+// Builds the SurfSD web server. Tests use this too, but with a temporary
+// database instead of your real local database.
 export function createApp(options = {}) {
   openDatabase(options.databasePath || config.databasePath);
   const conditionsProvider = options.conditionsProvider || getSpotConditions;
 
   return http.createServer(async (request, response) => {
+    // Add shortcuts like response.html() and response.redirect(), then add basic
+    // safety settings for the browser.
     decorateResponse(response);
     addSecurityHeaders(response);
 
     try {
       const url = new URL(request.url, "http://localhost");
+
+      // Check if the visitor is logged in. If yes, request.user becomes the
+      // current user for the rest of this request.
       request.session = readSession(request);
       request.user = request.session.userId ? findUserById(request.session.userId) : undefined;
 
+      // Only serve public files we expect, like CSS, JS, images, uploads, and the
+      // design preview page.
       if (
         url.pathname.startsWith("/uploads/") ||
         url.pathname.startsWith("/spot-images/") ||
         url.pathname === "/styles.css" ||
         url.pathname === "/map.js" ||
+        url.pathname === "/design-preview.html" ||
         url.pathname === "/sd-map.svg" ||
         url.pathname === "/surfsd-logo.png"
       ) {
@@ -35,6 +45,8 @@ export function createApp(options = {}) {
       if (request.method === "GET" && url.pathname === "/") return response.redirect("/map");
       if (request.method === "GET" && url.pathname === "/about") return response.html(aboutPage({ user: request.user }));
       if (request.method === "GET" && url.pathname === "/map") {
+        // The map has one general San Diego conditions box. We use a known spot
+        // near the middle of the county as the reference point.
         const sanDiegoReferenceSpot = findSurfSpotBySlug("ocean-beach-jetty") || findSurfSpotBySlug("little-point-rockpile");
         const conditions = sanDiegoReferenceSpot
           ? await conditionsProvider(sanDiegoReferenceSpot).catch(() => placeholderConditions())
@@ -81,6 +93,8 @@ export function createApp(options = {}) {
 
       response.notFound();
     } catch (error) {
+      // If someone uploads a file that is too big, show a friendly error instead
+      // of letting the app break.
       if (error.message === "Request body is too large.") {
         response.html(accountPage({ user: request.user, error: "Request body is too large." }), 413);
         return;
@@ -90,6 +104,7 @@ export function createApp(options = {}) {
   });
 }
 
+// Creates a new account, then immediately logs that person in.
 async function handleSignup(request, response) {
   const form = await readForm(request);
   const errors = validateSignup(form);
@@ -106,6 +121,7 @@ async function handleSignup(request, response) {
   response.redirect(form.next || "/account");
 }
 
+// Logs someone in with either email or username.
 async function handleLogin(request, response) {
   const form = await readForm(request);
   const errors = validateLogin(form);
@@ -122,6 +138,8 @@ async function handleLogin(request, response) {
   response.redirect(form.next || "/account");
 }
 
+// Lets logged-in users change their username. auth.js checks the once-every-14-
+// days rule.
 async function handleChangeUsername(request, response) {
   if (!requireUser(request, response)) return;
   const form = await readForm(request);
@@ -132,6 +150,8 @@ async function handleChangeUsername(request, response) {
   response.redirect("/account?message=Username updated.");
 }
 
+// Lets logged-in users change their password after they type their current
+// password correctly.
 async function handleResetPassword(request, response) {
   if (!requireUser(request, response)) return;
   const form = await readForm(request);
@@ -142,6 +162,7 @@ async function handleResetPassword(request, response) {
   response.redirect("/account?message=Password updated.");
 }
 
+// Deletes a report only if the logged-in user owns it.
 function handleDeleteReport(request, response, reportId) {
   if (!requireUser(request, response)) return;
   const deleted = deleteReportForUser(Number(reportId), request.user.id);
@@ -151,6 +172,7 @@ function handleDeleteReport(request, response, reportId) {
   response.redirect("/account?message=Report Deleted");
 }
 
+// Shows the edit form, but only during the 3-hour edit window.
 function handleEditReportPage(request, response, reportId) {
   if (!requireUser(request, response)) return;
   const report = findReportForUser(Number(reportId), request.user.id);
@@ -161,6 +183,8 @@ function handleEditReportPage(request, response, reportId) {
   response.html(editReportPage({ user: request.user, report }));
 }
 
+// Saves an edited report. The database also checks ownership and the 3-hour
+// window, so people cannot cheat by skipping the normal page.
 async function handleUpdateReport(request, response, reportId) {
   if (!requireUser(request, response)) return;
   const report = findReportForUser(Number(reportId), request.user.id);
@@ -190,6 +214,8 @@ async function handleUpdateReport(request, response, reportId) {
   response.redirect("/account?message=Report Updated");
 }
 
+// Creates either a normal comment or a reply. The hidden "next" field sends the
+// user back to the same spot page after posting.
 async function handleCreateComment(request, response, reportId) {
   if (!requireUser(request, response)) return;
   const form = await readForm(request);
@@ -204,6 +230,8 @@ async function handleCreateComment(request, response, reportId) {
   response.redirect(`${next}#report-${Number(reportId)}`);
 }
 
+// Deletes comments only for their owner. If an original comment is deleted, its
+// replies are deleted too because they belong under it.
 async function handleDeleteComment(request, response, commentId) {
   if (!requireUser(request, response)) return;
   const form = await readForm(request);
@@ -214,11 +242,14 @@ async function handleDeleteComment(request, response, commentId) {
   response.redirect(`${next}#report-${reportId}`);
 }
 
+// Builds a surf spot page with spot info, live conditions, reports, and comments.
 async function handleSpotPage(request, response, slug, conditionsProvider, error = "") {
   const spot = findSurfSpotBySlug(slug);
   if (!spot) return response.notFound();
   const reports = listReportsForSpot(spot.id);
   const comments = listCommentsForSpot(spot.id);
+
+  // Put each comment under the correct report card.
   const commentsByReport = new Map();
   for (const comment of comments) {
     const reportComments = commentsByReport.get(comment.reportId) || [];
@@ -232,6 +263,7 @@ async function handleSpotPage(request, response, slug, conditionsProvider, error
   response.html(spotPage({ user: request.user, spot, reports, conditions, error }));
 }
 
+// Shows the blank create-report form for a specific surf spot.
 function handleNewReport(request, response, slug) {
   if (!requireUser(request, response)) return;
   const spot = findSurfSpotBySlug(slug);
@@ -239,6 +271,7 @@ function handleNewReport(request, response, slug) {
   response.html(reportFormPage({ user: request.user, spot }));
 }
 
+// Reads the report form, checks the inputs, then saves the report.
 async function handleCreateReport(request, response, slug) {
   if (!requireUser(request, response)) return;
   const spot = findSurfSpotBySlug(slug);
@@ -246,6 +279,7 @@ async function handleCreateReport(request, response, slug) {
 
   let upload;
   try {
+    // This reads both the regular form fields and the optional video upload.
     upload = await readMultipartForm(request);
   } catch (error) {
     if (error.message === "Request body is too large.") {
@@ -280,6 +314,8 @@ async function handleCreateReport(request, response, slug) {
   response.redirect(`/spots/${spot.slug}`);
 }
 
+// Adds browser safety rules, like blocking this site from being embedded inside
+// another site.
 function addSecurityHeaders(response) {
   response.setHeader("X-Content-Type-Options", "nosniff");
   response.setHeader("X-Frame-Options", "DENY");
@@ -290,10 +326,13 @@ function addSecurityHeaders(response) {
   );
 }
 
+// Reports are editable for 3 hours after creation.
 function canEditReport(report) {
   return Date.now() - parseSqliteDate(report.createdAt).getTime() <= 3 * 60 * 60 * 1000;
 }
 
+// The database stores dates in a format JavaScript needs help reading. This
+// converts them into a format JavaScript understands better.
 function parseSqliteDate(value) {
   if (typeof value === "string" && !value.includes("T")) {
     return new Date(`${value.replace(" ", "T")}Z`);
@@ -301,6 +340,7 @@ function parseSqliteDate(value) {
   return new Date(value);
 }
 
+// Only allow redirects to pages inside this app.
 function safeRedirectPath(value) {
   const path = String(value || "");
   if (!path.startsWith("/") || path.startsWith("//")) return "/map";

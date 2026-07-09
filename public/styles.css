@@ -1,3 +1,4 @@
+/* Main design values. Change these to update colors, shadows, and rounded corners. */
 :root {
   color-scheme: light;
   --ink: #102b36;
@@ -26,6 +27,7 @@
   box-sizing: border-box;
 }
 
+/* Basic page setup shared by every page. */
 html {
   scroll-behavior: smooth;
 }
@@ -48,6 +50,7 @@ a {
   color: inherit;
 }
 
+/* Floating navigation bar. public/map.js hides and shows it while scrolling. */
 .site-header {
   align-items: center;
   background: rgba(255, 255, 255, 0.86);
@@ -136,6 +139,7 @@ nav a:hover {
   text-transform: uppercase;
 }
 
+/* Primary pill button used for important actions. */
 .button {
   align-items: center;
   background: linear-gradient(135deg, var(--sea), #009fb3);
@@ -166,6 +170,7 @@ nav a:hover {
   text-transform: uppercase;
 }
 
+/* Flash messages show form errors and success messages. */
 .flash {
   background: rgba(255, 244, 223, 0.96);
   border: 1px solid rgba(255, 184, 77, 0.55);
@@ -207,6 +212,7 @@ main {
   padding: clamp(160px, 14vh, 190px) clamp(18px, 4vw, 38px) clamp(48px, 6vw, 76px);
 }
 
+/* Main heading and paragraph styles. */
 h1,
 h2 {
   color: var(--ink-strong);
@@ -241,6 +247,7 @@ p {
   width: 100%;
 }
 
+/* Login and signup panels. */
 .auth-grid {
   align-items: start;
   display: grid;
@@ -275,6 +282,7 @@ p {
   margin-bottom: clamp(22px, 3vw, 34px);
 }
 
+/* Input boxes used across login, account settings, reports, and comments. */
 label {
   color: var(--ink);
   display: grid;
@@ -323,6 +331,47 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(0, 127, 148, 0.12);
 }
 
+/* Password Show/Hide control inside the login password field. */
+.password-field {
+  display: block;
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  padding-right: 86px;
+}
+
+.password-toggle {
+  align-items: center;
+  background: rgba(0, 127, 148, 0.1);
+  border: 1px solid rgba(0, 127, 148, 0.18);
+  border-radius: 999px;
+  color: var(--teal-dark);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  justify-content: center;
+  padding: 7px 13px;
+  position: absolute;
+  right: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+}
+
+.password-toggle:hover,
+.password-toggle:focus {
+  background: var(--teal);
+  color: var(--white);
+}
+
+.password-toggle:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
 textarea {
   min-height: 132px;
   resize: vertical;
@@ -332,6 +381,7 @@ textarea {
   min-height: 168px;
 }
 
+/* Full-screen map page and its floating information panels. */
 .map-shell {
   background: #b9dfe7;
   height: 100vh;
@@ -401,6 +451,7 @@ textarea {
   color: var(--ink);
 }
 
+/* Map marker styling. A red center dot means that spot has a report today. */
 .surf-marker {
   background: var(--white);
   border: 3px solid rgba(255, 255, 255, 0.98);
@@ -433,6 +484,7 @@ textarea {
   transform: scale(1.22);
 }
 
+/* Map popups and map control buttons. */
 .leaflet-popup-content-wrapper {
   border: 1px solid rgba(255, 255, 255, 0.9);
   border-radius: 22px;
@@ -521,6 +573,7 @@ textarea {
   color: var(--muted);
 }
 
+/* Live conditions panel on the map. */
 .stats-panel {
   background: linear-gradient(145deg, rgba(13, 44, 55, 0.98), rgba(7, 77, 88, 0.95));
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -616,6 +669,7 @@ textarea {
   padding-top: 12px;
 }
 
+/* Surf spot hero section with background image and condition cards. */
 .spot-hero {
   background: var(--ink);
   display: grid;
@@ -727,6 +781,7 @@ textarea {
   margin-top: 14px;
 }
 
+/* Recent report grid and individual report cards. */
 .reports-section {
   max-width: 1600px;
   padding-top: clamp(46px, 7vw, 86px);
@@ -866,29 +921,61 @@ textarea {
   color: var(--white);
 }
 
+/* Comment dropdown, normal comments, replies, and delete/reply buttons. */
 .report-comments {
   border-top: 1px solid var(--line);
   margin-top: 16px;
   padding-top: 14px;
 }
 
-.report-comments h3 {
+.report-comments summary {
+  align-items: center;
   color: var(--ink);
-  font-size: 1rem;
-  margin: 0 0 10px;
+  cursor: pointer;
+  display: flex;
+  font-size: 0.98rem;
+  font-weight: 900;
+  justify-content: space-between;
+  list-style: none;
+  margin: 0;
+}
+
+.report-comments summary::-webkit-details-marker {
+  display: none;
+}
+
+.report-comments summary::after {
+  background: var(--soft);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--sea-dark);
+  content: "Show";
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.05em;
+  padding: 6px 10px;
+  text-transform: uppercase;
+}
+
+.report-comments[open] summary {
+  margin-bottom: 12px;
+}
+
+.report-comments[open] summary::after {
+  content: "Hide";
 }
 
 .comment-list {
   display: grid;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
 .comment {
-  background: rgba(229, 244, 243, 0.55);
+  background: rgba(255, 255, 255, 0.64);
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 12px;
+  padding: 11px 12px;
 }
 
 .comment-body {
@@ -912,11 +999,15 @@ textarea {
 }
 
 .comment .comment-form {
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(229, 244, 243, 0.5);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   margin-top: 10px;
   padding: 10px;
+}
+
+.reply-form-shell[hidden] {
+  display: none;
 }
 
 .comment-delete-form {
@@ -945,17 +1036,35 @@ textarea {
 }
 
 .comment-replies {
-  border-left: 3px solid rgba(0, 153, 169, 0.2);
+  border-left: 2px solid rgba(0, 153, 169, 0.18);
   display: grid;
-  gap: 8px;
+  gap: 6px;
   margin-top: 12px;
-  padding-left: 12px;
+  padding-left: 10px;
 }
 
 .reply-comment {
-  background: rgba(255, 255, 255, 0.62);
+  background: rgba(229, 244, 243, 0.44);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 9px 10px;
+}
+
+.reply-toggle {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--sea-dark);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 900;
+  margin-top: 8px;
+  padding: 0;
+}
+
+.reply-toggle:hover {
+  color: var(--ink);
+  text-decoration: underline;
 }
 
 .comment-form {
@@ -975,9 +1084,10 @@ textarea {
 
 .small-button {
   justify-self: start;
-  padding: 10px 16px;
+  padding: 9px 14px;
 }
 
+/* Account details, settings cards, and report history. */
 .account-details {
   background: rgba(255, 255, 255, 0.72);
   border: 1px solid rgba(255, 255, 255, 0.72);
@@ -1174,6 +1284,7 @@ textarea {
   padding: 22px;
 }
 
+/* Layout changes for tablet-sized screens. */
 @media (max-width: 980px) {
   .report-grid,
   .condition-strip,
@@ -1195,6 +1306,7 @@ textarea {
   }
 }
 
+/* Layout changes for phone-sized screens. */
 @media (max-width: 820px) {
   body:has(.map-shell) {
     overflow: auto;
@@ -1328,6 +1440,7 @@ textarea {
   }
 }
 
+/* Small-phone layout adjustments. */
 @media (max-width: 560px) {
   .site-header {
     align-items: flex-start;

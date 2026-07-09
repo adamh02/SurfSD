@@ -1,3 +1,5 @@
+// Temporarily saves live condition results so refreshing the page does not keep
+// asking the weather/tide websites over and over.
 const cache = new Map();
 const cacheDurationMs = 10 * 60 * 1000;
 const requestTimeoutMs = 8 * 1000;
@@ -5,6 +7,8 @@ const requestHeaders = {
   "User-Agent": "SurfSD local development (https://github.com/adamh02/SurfSD)"
 };
 
+// Gets the three live condition pieces shown on the map and spot pages: swell,
+// tide, and weather.
 export async function getSpotConditions(spot) {
   const cached = cache.get(spot.slug);
   if (cached && Date.now() - cached.createdAt < cacheDurationMs) {
@@ -27,6 +31,7 @@ export async function getSpotConditions(spot) {
   return conditions;
 }
 
+// Backup conditions shown if an outside weather/tide website is down.
 export function placeholderConditions() {
   return {
     swell: "3-4 ft W swell",
@@ -35,6 +40,8 @@ export function placeholderConditions() {
   };
 }
 
+// Reads buoy data and turns it into something surfers understand, like
+// "3.3 ft SW swell @ 15s".
 async function fetchSwell() {
   const text = await fetchText("https://www.ndbc.noaa.gov/data/realtime2/46225.txt");
   if (!text) return null;
@@ -56,11 +63,13 @@ async function fetchSwell() {
   return `${waveFeet} ft ${directionLabel}swell${periodLabel}`;
 }
 
+// Pick a nearby tide station depending on where the surf spot is.
 async function fetchTide(spot) {
   const station = spot.latitude >= 32.8 ? "9410230" : "9410170";
   return await fetchObservedTide(station) || await fetchPredictedTide(station);
 }
 
+// Observed tide is best because it is measured water level right now.
 async function fetchObservedTide(station) {
   const url = new URL("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter");
   url.search = new URLSearchParams({
@@ -78,6 +87,7 @@ async function fetchObservedTide(station) {
   return formatCurrentTide(data?.data);
 }
 
+// Predicted tide is the backup when real measured tide data is unavailable.
 async function fetchPredictedTide(station) {
   const url = new URL("https://api.tidesandcurrents.noaa.gov/api/prod/datagetter");
   url.search = new URLSearchParams({
@@ -96,6 +106,8 @@ async function fetchPredictedTide(station) {
   return formatCurrentTide(data?.predictions);
 }
 
+// Chooses the closest tide reading and labels whether the tide is rising,
+// falling, or staying about the same.
 export function formatCurrentTide(readings = [], nowMs = Date.now()) {
   const parsedReadings = readings
     .map((reading) => ({
@@ -116,16 +128,21 @@ export function formatCurrentTide(readings = [], nowMs = Date.now()) {
   return `${current.value.toFixed(1)} ft ${tideTrend(current.value, comparison.value, currentIndex > 0)}`;
 }
 
+// Compares two tide numbers to describe the trend.
 function tideTrend(currentValue, comparisonValue, comparisonIsPrevious) {
   const change = comparisonIsPrevious ? currentValue - comparisonValue : comparisonValue - currentValue;
   if (Math.abs(change) < 0.02) return "steady";
   return change > 0 ? "rising" : "falling";
 }
 
+// The tide website gives dates in a slightly different format, so convert them
+// into a date JavaScript can read.
 function parseLocalDate(value) {
   return new Date(String(value).replace(" ", "T"));
 }
 
+// Weather.gov works in two steps: first find the forecast link for this location,
+// then read that forecast.
 async function fetchWeather(spot) {
   const point = await fetchJson(`https://api.weather.gov/points/${spot.latitude},${spot.longitude}`);
   const hourlyUrl = point?.properties?.forecastHourly;
@@ -138,6 +155,8 @@ async function fetchWeather(spot) {
   return `${period.temperature} F, ${period.shortForecast}, ${period.windSpeed} ${period.windDirection}`;
 }
 
+// These fetch helpers return null if something goes wrong, so the page can still
+// load instead of crashing.
 async function fetchJson(url) {
   try {
     const response = await fetchWithTimeout(url);
@@ -158,6 +177,7 @@ async function fetchText(url) {
   }
 }
 
+// Stops slow weather/tide websites from making the whole page wait forever.
 async function fetchWithTimeout(url) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), requestTimeoutMs);
@@ -168,6 +188,7 @@ async function fetchWithTimeout(url) {
   }
 }
 
+// Converts direction numbers like 225 into readable labels like SW.
 function compassDirection(degrees) {
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   return directions[Math.round(degrees / 45) % directions.length];

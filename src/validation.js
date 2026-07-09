@@ -1,6 +1,9 @@
+// Validates surf report form input before it reaches the database. Returning the
+// parsed values here keeps route handlers from repeating Number(...) everywhere.
 export function validateReport({ description = "", waveHeight = "", rating = "", file }) {
   const errors = [];
   const parsedWaveHeight = Number(waveHeight);
+  // Rating is optional, so blank means "no rating" instead of an error.
   const hasRating = String(rating).trim() !== "";
   const parsedRating = hasRating ? Number(rating) : null;
 

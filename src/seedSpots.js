@@ -1,3 +1,5 @@
+// Default surf spots added to the database on startup. If you edit a spot here,
+// db.js updates that spot instead of creating a duplicate.
 export const seedSpots = [
   {
     name: "Oceanside Harbor",

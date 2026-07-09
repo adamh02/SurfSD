@@ -345,7 +345,8 @@ test("users can comment on surf reports", async () => {
     assert.equal(posted.response.headers.get("location"), `/spots/swamis#report-${report.id}`);
 
     const spotPage = await client.get("/spots/swamis");
-    assert.match(spotPage.text, /Comments/);
+    assert.match(spotPage.text, /<details class="report-comments">/);
+    assert.match(spotPage.text, /<summary>1 Comment<\/summary>/);
     assert.match(spotPage.text, /Commenter/);
     assert.match(spotPage.text, /Thanks for the update!/);
   } finally {
@@ -393,6 +394,8 @@ test("users can reply to a specific comment", async () => {
     assert.match(spotPage.text, /First comment in the thread\./);
     assert.match(spotPage.text, /Replying directly to that comment\./);
     assert.match(spotPage.text, /comment-replies/);
+    assert.match(spotPage.text, /data-reply-toggle/);
+    assert.match(spotPage.text, /reply-form-shell" hidden/);
     assert.match(spotPage.text, /Post Reply/);
     assert.equal((spotPage.text.match(/Post Reply/g) || []).length, 1);
   } finally {
@@ -722,7 +725,28 @@ test("delete confirmations are wired without inline scripts", async () => {
     assert.match(text, /initializeConfirmForms/);
     assert.match(text, /form\[data-confirm\]/);
     assert.match(text, /window\.confirm/);
+    assert.match(text, /initializeReplyToggles/);
+    assert.match(text, /data-reply-toggle/);
     assert.match(text, /New Report Today/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("login password can be shown while typing", async () => {
+  const client = createTestClient();
+  try {
+    const { response, text } = await client.get("/account");
+    assert.equal(response.status, 200);
+    assert.match(text, /data-password-toggle-input/);
+    assert.match(text, /data-password-toggle/);
+    assert.match(text, /aria-label="Show password"/);
+
+    const script = await client.get("/map.js");
+    assert.equal(script.response.status, 200);
+    assert.match(script.text, /initializePasswordToggles/);
+    assert.match(script.text, /input\.type === "password"/);
+    assert.match(script.text, /Hide password/);
   } finally {
     await client.cleanup();
   }

@@ -1,5 +1,7 @@
 import { listSurfSpots } from "./db.js";
 
+// Shared page wrapper used by every page. This keeps the header, styling files,
+// scripts, and alert message consistent across the whole site.
 export function layout({ title, user, body, flash = "" }) {
   const navUser = user
     ? `<a href="/logout">Log Out</a><span class="nav-user">Hi, ${escapeHtml(user.name)}</span>`
@@ -34,6 +36,7 @@ export function layout({ title, user, body, flash = "" }) {
   </html>`;
 }
 
+// About page content.
 export function aboutPage(context) {
   return layout({
     ...context,
@@ -50,6 +53,9 @@ export function aboutPage(context) {
   });
 }
 
+// Account page has two versions:
+// - logged out: signup/login forms
+// - logged in: profile settings, report history, and logout
 export function accountPage({ user, recentReport, reports = [], error = "", message = "", next = "" }) {
   const body = user
     ? `<section class="page-band"><div class="content narrow">
@@ -98,6 +104,8 @@ export function accountPage({ user, recentReport, reports = [], error = "", mess
   return layout({ title: "Account", user, flash: error || message, body });
 }
 
+// Reusable signup/login form builder. The login form gets the password Show/Hide
+// button; the signup form does not need it right now.
 function authForm(title, action, next, fields) {
   const isLogin = title === "Log In";
   return `<form class="panel" method="post" action="${action}">
@@ -105,11 +113,17 @@ function authForm(title, action, next, fields) {
     <input type="hidden" name="next" value="${escapeHtml(next)}">
     ${fields.includes("name") ? `<label>Username<input name="name" autocomplete="username" placeholder="WaveRider" required minlength="2"></label>` : ""}
     <label>${isLogin ? "Email or Username" : "Email"}<input name="email" type="${isLogin ? "text" : "email"}" autocomplete="${isLogin ? "username" : "email"}" placeholder="${isLogin ? "surfer@example.com or WaveRider" : "surfer@example.com"}" required></label>
-    <label>Password<input name="password" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="At least 8 characters" required minlength="8"></label>
+    <label>Password
+      <span class="password-field">
+        <input name="password" type="password" autocomplete="${isLogin ? "current-password" : "new-password"}" placeholder="At least 8 characters" required minlength="8"${isLogin ? " data-password-toggle-input" : ""}>
+        ${isLogin ? `<button class="password-toggle" type="button" data-password-toggle aria-label="Show password" aria-pressed="false">Show</button>` : ""}
+      </span>
+    </label>
     <button class="button" type="submit">${title}</button>
   </form>`;
 }
 
+// One report card in the account page report history.
 function accountReport(report) {
   return `<article class="history-item">
     <div>
@@ -130,6 +144,8 @@ function accountReport(report) {
   </article>`;
 }
 
+// Main map page. It includes the surf spot data so public/map.js can draw the
+// markers in the browser.
 export function mapPage(context) {
   const spots = listSurfSpots();
   const conditions = context.conditions || { swell: "Loading swell", tide: "Loading tide", weather: "Loading weather" };
@@ -170,6 +186,8 @@ export function mapPage(context) {
   });
 }
 
+// Surf spot detail page with the big image, live condition cards, create-report
+// button, and recent reports.
 export function spotPage({ user, spot, reports, conditions, error = "" }) {
   const now = new Date();
   const liveTimestamp = formatLiveTimestamp(now);
@@ -199,6 +217,7 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
   });
 }
 
+// Renders one community surf report card.
 function reportCard(report, { user, spot }) {
   return `<article class="report-card" id="report-${escapeHtml(report.id)}">
     ${report.imageUrl ? reportMedia(report.imageUrl) : `<div class="report-media-placeholder">No video</div>`}
@@ -215,16 +234,22 @@ function reportCard(report, { user, spot }) {
   </article>`;
 }
 
+// Wraps comments in a dropdown so long comment sections do not make the page
+// massive.
 function reportComments(report, { user, spot }) {
   const comments = report.comments || [];
   const topLevelComments = comments.filter((comment) => !comment.parentCommentId);
-  return `<section class="report-comments">
-    <h3>Comments</h3>
+  const commentCount = comments.length;
+  const summaryText = commentCount === 1 ? "1 Comment" : `${commentCount} Comments`;
+  return `<details class="report-comments">
+    <summary>${summaryText}</summary>
     ${topLevelComments.length ? `<div class="comment-list">${topLevelComments.map((comment) => commentThread(comment, comments, report, spot, user)).join("")}</div>` : `<p class="no-comments">No comments yet.</p>`}
     ${user ? commentForm(report, spot) : `<p class="comment-login">Log in to comment.</p>`}
-  </section>`;
+  </details>`;
 }
 
+// Same form is used for normal comments and replies. parentCommentId means "this
+// is a reply to that comment."
 function commentForm(report, spot, parentCommentId = "") {
   return `<form class="comment-form" method="post" action="/reports/${escapeHtml(report.id)}/comments">
     <input type="hidden" name="next" value="/spots/${escapeHtml(spot.slug)}">
@@ -234,15 +259,18 @@ function commentForm(report, spot, parentCommentId = "") {
   </form>`;
 }
 
+// A normal comment can have replies. Replies do not get their own reply form, so
+// threads stay simple.
 function commentThread(comment, allComments, report, spot, user) {
   const replies = allComments.filter((reply) => Number(reply.parentCommentId) === Number(comment.id));
   return `<article class="comment" id="comment-${escapeHtml(comment.id)}">
     ${commentBody(comment, report, spot, user)}
-    ${user ? commentForm(report, spot, comment.id) : ""}
+    ${user ? `<button class="reply-toggle" type="button" data-reply-toggle>Reply</button><div class="reply-form-shell" hidden>${commentForm(report, spot, comment.id)}</div>` : ""}
     ${replies.length ? `<div class="comment-replies">${replies.map((reply) => `<article class="comment reply-comment" id="comment-${escapeHtml(reply.id)}">${commentBody(reply, report, spot, user)}</article>`).join("")}</div>` : ""}
   </article>`;
 }
 
+// Shared comment layout used by both comments and replies.
 function commentBody(comment, report, spot, user) {
   return `<div class="comment-body">
     <strong>${escapeHtml(comment.userName)}</strong>
@@ -251,6 +279,7 @@ function commentBody(comment, report, spot, user) {
   </div>`;
 }
 
+// Delete button only shows when the current user wrote the comment.
 function deleteCommentForm(comment, report, spot) {
   return `<form class="comment-delete-form" method="post" action="/comments/${escapeHtml(comment.id)}/delete" data-confirm="Are you sure you want to delete this comment?">
     <input type="hidden" name="next" value="/spots/${escapeHtml(spot.slug)}">
@@ -259,6 +288,7 @@ function deleteCommentForm(comment, report, spot) {
   </form>`;
 }
 
+// Badge milestones reward users for posting more reports.
 function reportBadge(reportCount = 0) {
   const count = Number(reportCount);
   if (count >= 1000) return `<b class="report-badge report-badge-elite" title="1,000+ surf reports posted">1K Reports</b>`;
@@ -267,6 +297,7 @@ function reportBadge(reportCount = 0) {
   return "";
 }
 
+// Report media can be a video upload or an image link.
 function reportMedia(mediaUrl) {
   const escapedUrl = escapeHtml(mediaUrl);
   if (/\.(mp4|webm|mov)$/i.test(mediaUrl)) {
@@ -275,11 +306,13 @@ function reportMedia(mediaUrl) {
   return `<img src="${escapedUrl}" alt="Surf report media">`;
 }
 
+// Turns a number rating into the text users see on report cards.
 function ratingSummary(rating) {
   if (!rating) return "No rating";
   return `${escapeHtml(rating)}/10 - ${ratingLabel(Number(rating))}`;
 }
 
+// SurfSD's rating scale.
 function ratingLabel(rating) {
   if (rating >= 9) return "Firing";
   if (rating === 8) return "Good";
@@ -288,6 +321,7 @@ function ratingLabel(rating) {
   return "Poor";
 }
 
+// Create-report form for a specific surf spot.
 export function reportFormPage({ user, spot, error = "", values = {} }) {
   return layout({
     title: `Create Report for ${spot.name}`,
@@ -305,6 +339,8 @@ export function reportFormPage({ user, spot, error = "", values = {} }) {
   });
 }
 
+// Edit-report form. The app only shows this if the report is still within the
+// 3-hour edit window.
 export function editReportPage({ user, report, error = "" }) {
   return layout({
     title: `Edit Report for ${report.surfSpotName}`,
@@ -323,6 +359,8 @@ export function editReportPage({ user, report, error = "" }) {
   });
 }
 
+// Makes user-written text safe before putting it on the page. This stops someone
+// from typing HTML/JavaScript into a username, report, or comment.
 export function escapeHtml(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -332,10 +370,12 @@ export function escapeHtml(value = "") {
     .replaceAll("'", "&#039;");
 }
 
+// Date shown in account history.
 function formatDate(value) {
   return new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", year: "numeric" }).format(new Date(value));
 }
 
+// Time shown next to live conditions so users know when the info was loaded.
 function formatLiveTimestamp(value = new Date()) {
   return new Intl.DateTimeFormat("en-US", {
     month: "short",
@@ -348,10 +388,12 @@ function formatLiveTimestamp(value = new Date()) {
   }).format(new Date(value));
 }
 
+// Date format used inside the page's <time> tag.
 function toIsoTimestamp(value = new Date()) {
   return new Date(value).toISOString();
 }
 
+// Friendly report age like "just now", "4 hours ago", or a full date.
 function formatRelativeTime(value) {
   const date = parseSqliteDate(value);
   const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
@@ -369,6 +411,7 @@ function formatRelativeTime(value) {
   return formatDate(value);
 }
 
+// Converts database dates into a format JavaScript can understand better.
 function parseSqliteDate(value) {
   if (typeof value === "string" && !value.includes("T")) {
     return new Date(`${value.replace(" ", "T")}Z`);
@@ -376,6 +419,7 @@ function parseSqliteDate(value) {
   return new Date(value);
 }
 
+// Decides whether to show the Edit Report link.
 function canEditReport(report) {
   return Date.now() - parseSqliteDate(report.createdAt).getTime() <= 3 * 60 * 60 * 1000;
 }

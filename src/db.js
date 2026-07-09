@@ -3,6 +3,8 @@ import { seedSpots } from "./seedSpots.js";
 
 let database;
 
+// Opens the database file, makes sure the needed tables exist, and adds the
+// default surf spots.
 export function openDatabase(databasePath) {
   database = new DatabaseSync(databasePath);
   database.exec("PRAGMA foreign_keys = ON");
@@ -11,6 +13,8 @@ export function openDatabase(databasePath) {
   return database;
 }
 
+// Gives other files access to the open database. If the database was not opened
+// yet, show a clear error.
 export function getDatabase() {
   if (!database) {
     throw new Error("Database has not been opened.");
@@ -18,6 +22,7 @@ export function getDatabase() {
   return database;
 }
 
+// Tests call this when they are done with a temporary database.
 export function closeDatabase() {
   if (database) {
     database.close();
@@ -25,6 +30,8 @@ export function closeDatabase() {
   }
 }
 
+// Creates the tables if they do not exist yet, then upgrades older local
+// databases that are missing newer fields.
 function migrate() {
   database.exec(`
     CREATE TABLE IF NOT EXISTS users (
@@ -79,6 +86,7 @@ function migrate() {
   migrateUserAccountSettings();
 }
 
+// Adds a place to remember when someone last changed their username.
 function migrateUserAccountSettings() {
   const columns = database.prepare("PRAGMA table_info(users)").all();
   if (!columns.some((column) => column.name === "usernameChangedAt")) {
@@ -86,6 +94,8 @@ function migrateUserAccountSettings() {
   }
 }
 
+// Older versions required a media file and rating. This upgrades old databases
+// so those fields can be optional.
 function migrateReportsOptionalFields() {
   const columns = database.prepare("PRAGMA table_info(reports)").all();
   const imageUrlColumn = columns.find((column) => column.name === "imageUrl");
@@ -115,6 +125,7 @@ function migrateReportsOptionalFields() {
   `);
 }
 
+// Adds a place to remember when a report was edited.
 function migrateReportEdits() {
   const columns = database.prepare("PRAGMA table_info(reports)").all();
   if (!columns.some((column) => column.name === "editedAt")) {
@@ -122,6 +133,7 @@ function migrateReportEdits() {
   }
 }
 
+// Adds a place to connect a reply to the original comment it belongs under.
 function migrateCommentReplies() {
   const columns = database.prepare("PRAGMA table_info(comments)").all();
   if (!columns.some((column) => column.name === "parentCommentId")) {
@@ -129,6 +141,8 @@ function migrateCommentReplies() {
   }
 }
 
+// Adds each default spot if it is missing. If the spot already exists, update its
+// info instead of creating a duplicate.
 function seed() {
   const upsert = database.prepare(`
     INSERT INTO surf_spots (name, slug, latitude, longitude, description, imageUrl, difficulty)
@@ -155,6 +169,7 @@ function seed() {
   }
 }
 
+// User-related database helpers.
 export function createUser({ name, email, passwordHash }) {
   const result = getDatabase()
     .prepare("INSERT INTO users (name, email, passwordHash) VALUES (?, ?, ?)")
@@ -174,12 +189,14 @@ export function findUserByName(name) {
     .get(name.trim());
 }
 
+// Normal user lookup leaves out password info so pages do not accidentally use it.
 export function findUserById(id) {
   return getDatabase()
     .prepare("SELECT id, name, email, usernameChangedAt, createdAt FROM users WHERE id = ?")
     .get(id);
 }
 
+// Password checks need the saved scrambled password, so this lookup includes it.
 export function findUserWithPassword(id) {
   return getDatabase()
     .prepare("SELECT * FROM users WHERE id = ?")
@@ -199,6 +216,7 @@ export function updatePassword(userId, passwordHash) {
     .run(passwordHash, userId);
 }
 
+// Report history helpers for the account page.
 export function findMostRecentReportForUser(userId) {
   return getDatabase()
     .prepare(`
@@ -224,6 +242,7 @@ export function listReportsForUser(userId) {
     .all(userId);
 }
 
+// Used before editing to make sure the logged-in user owns the report.
 export function findReportForUser(reportId, userId) {
   return getDatabase()
     .prepare(`
@@ -235,6 +254,7 @@ export function findReportForUser(reportId, userId) {
     .get(reportId, userId);
 }
 
+// The map needs all surf spots, plus whether each one has a report today.
 export function listSurfSpots() {
   return getDatabase()
     .prepare(`
@@ -257,6 +277,7 @@ export function findSurfSpotBySlug(slug) {
     .get(slug);
 }
 
+// Report-related database helpers.
 export function createReport({ surfSpotId, userId, imageUrl, description, waveHeight, rating }) {
   const result = getDatabase()
     .prepare(`
@@ -267,6 +288,8 @@ export function createReport({ surfSpotId, userId, imageUrl, description, waveHe
   return result.lastInsertRowid;
 }
 
+// Updates a report only when the logged-in user owns it and it is still within
+// the 3-hour edit window.
 export function updateReportForUser({ reportId, userId, description, waveHeight, rating }) {
   const result = getDatabase()
     .prepare(`
@@ -280,6 +303,7 @@ export function updateReportForUser({ reportId, userId, description, waveHeight,
   return result.changes > 0;
 }
 
+// Deletes a report only if it belongs to the logged-in user.
 export function deleteReportForUser(reportId, userId) {
   const result = getDatabase()
     .prepare("DELETE FROM reports WHERE id = ? AND userId = ?")
@@ -287,6 +311,7 @@ export function deleteReportForUser(reportId, userId) {
   return result.changes > 0;
 }
 
+// Gets reports for a spot, including each author's total report count for badges.
 export function listReportsForSpot(surfSpotId) {
   return getDatabase()
     .prepare(`
@@ -305,6 +330,8 @@ export function listReportsForSpot(surfSpotId) {
     .all(surfSpotId);
 }
 
+// Gets all comments for one surf spot. app.js later groups them under the right
+// report card.
 export function listCommentsForSpot(surfSpotId) {
   return getDatabase()
     .prepare(`
@@ -318,6 +345,8 @@ export function listCommentsForSpot(surfSpotId) {
     .all(surfSpotId);
 }
 
+// Saves a comment only if the report exists. For replies, the original comment
+// must belong to that same report.
 export function createComment({ reportId, userId, body, parentCommentId = null }) {
   const result = getDatabase()
     .prepare(`
@@ -338,6 +367,7 @@ export function createComment({ reportId, userId, body, parentCommentId = null }
   return result.changes > 0;
 }
 
+// Deletes a comment only if it belongs to the logged-in user.
 export function deleteCommentForUser(commentId, userId) {
   const result = getDatabase()
     .prepare("DELETE FROM comments WHERE id = ? AND userId = ?")

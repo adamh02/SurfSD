@@ -1,0 +1,636 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SurfSD Design Preview</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,500..900,60,1&family=IBM+Plex+Mono:wght@500;600;700&display=swap");
+
+    :root {
+      --kelp: #061d20;
+      --deep: #092f36;
+      --reef: #0b5963;
+      --foam: #e8f2ed;
+      --mist: #bcd4cd;
+      --paper: #f5ecd8;
+      --sand: #d8b36b;
+      --signal: #ff6a2a;
+      --acid: #b8ff5b;
+      --line: rgba(232, 242, 237, 0.18);
+      --shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background:
+        radial-gradient(circle at 20% 12%, rgba(255, 106, 42, 0.22), transparent 24rem),
+        radial-gradient(circle at 86% 18%, rgba(184, 255, 91, 0.13), transparent 22rem),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.045) 25%, transparent 25%) 0 0 / 34px 34px,
+        linear-gradient(160deg, #031315 0%, var(--kelp) 46%, #0d3d42 100%);
+      color: var(--foam);
+      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      background:
+        repeating-radial-gradient(circle at 64% 34%, transparent 0 44px, rgba(232, 242, 237, 0.045) 45px 46px),
+        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+      content: "";
+      inset: 0;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      position: fixed;
+    }
+
+    .shell {
+      animation: rise 720ms cubic-bezier(.2, .8, .2, 1) both;
+      margin: 0 auto;
+      max-width: 1440px;
+      padding: 28px;
+    }
+
+    .nav {
+      align-items: center;
+      backdrop-filter: blur(18px);
+      background: rgba(6, 29, 32, 0.74);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding: 14px 18px;
+      position: sticky;
+      top: 18px;
+      z-index: 4;
+    }
+
+    .brand {
+      align-items: center;
+      display: flex;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      background:
+        radial-gradient(circle at 62% 28%, var(--signal) 0 6px, transparent 7px),
+        conic-gradient(from 220deg, var(--foam), var(--reef), var(--foam));
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 5px var(--kelp);
+      height: 46px;
+      width: 46px;
+    }
+
+    .brand strong {
+      color: var(--foam);
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.35rem;
+      font-variation-settings: "WONK" 1, "SOFT" 60;
+      letter-spacing: -0.04em;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 8px;
+    }
+
+    .nav-links a {
+      border: 1px solid transparent;
+      border-radius: 999px;
+      color: var(--mist);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 10px 14px;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .nav-links a.active,
+    .nav-links a:hover {
+      background: var(--foam);
+      color: var(--kelp);
+    }
+
+    .hero {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.1fr);
+      min-height: 680px;
+    }
+
+    .intro,
+    .live-panel,
+    .report-card,
+    .account-card {
+      backdrop-filter: blur(18px);
+      background: linear-gradient(160deg, rgba(232, 242, 237, 0.12), rgba(232, 242, 237, 0.055));
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+    }
+
+    .intro {
+      align-self: start;
+      border-radius: 34px;
+      padding: clamp(26px, 5vw, 56px);
+    }
+
+    .eyebrow {
+      color: var(--acid);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      margin: 0 0 18px;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      font-family: "Fraunces", Georgia, serif;
+      font-variation-settings: "WONK" 1, "SOFT" 60;
+      letter-spacing: -0.075em;
+      line-height: 0.9;
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(5rem, 12vw, 12.5rem);
+      max-width: 7ch;
+    }
+
+    .intro p {
+      color: var(--mist);
+      font-size: clamp(1rem, 1.5vw, 1.25rem);
+      line-height: 1.6;
+      max-width: 36rem;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 28px;
+    }
+
+    .pill {
+      background: rgba(255, 106, 42, 0.16);
+      border: 1px solid rgba(255, 106, 42, 0.38);
+      border-radius: 999px;
+      color: #ffd1bf;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 10px 14px;
+      text-transform: uppercase;
+    }
+
+    .map-stage {
+      border: 1px solid var(--line);
+      border-radius: 40px;
+      min-height: 680px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .map-stage::before {
+      background:
+        linear-gradient(rgba(232, 242, 237, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
+        linear-gradient(90deg, rgba(232, 242, 237, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
+        radial-gradient(circle at 34% 48%, rgba(11, 89, 99, 0.95), transparent 19rem),
+        linear-gradient(130deg, #08292e, #0c4b52 48%, #c59a4b 49%, #102e31 51%, #052024);
+      content: "";
+      inset: 0;
+      position: absolute;
+    }
+
+    .coastline {
+      border-left: 5px solid rgba(232, 242, 237, 0.8);
+      border-radius: 50%;
+      height: 820px;
+      left: 37%;
+      opacity: 0.5;
+      position: absolute;
+      top: -80px;
+      transform: rotate(13deg);
+      width: 270px;
+    }
+
+    .marker {
+      animation: pulse 2.4s infinite;
+      background: var(--foam);
+      border: 5px solid var(--kelp);
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px var(--foam), 0 12px 30px rgba(0,0,0,.35);
+      height: 22px;
+      position: absolute;
+      width: 22px;
+    }
+
+    .marker.hot::after {
+      background: #e33131;
+      border-radius: 50%;
+      content: "";
+      height: 8px;
+      inset: 2px;
+      margin: auto;
+      position: absolute;
+      width: 8px;
+    }
+
+    .m1 { left: 42%; top: 16%; }
+    .m2 { left: 48%; top: 33%; animation-delay: .3s; }
+    .m3 { left: 52%; top: 49%; animation-delay: .6s; }
+    .m4 { left: 46%; top: 68%; animation-delay: .9s; }
+
+    .live-panel {
+      border-radius: 30px;
+      bottom: 24px;
+      left: 24px;
+      max-width: 430px;
+      padding: 24px;
+      position: absolute;
+      right: 24px;
+    }
+
+    .panel-top {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .panel-top span,
+    .mono-label {
+      color: var(--acid);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .live-panel b {
+      color: var(--foam);
+      display: block;
+      font-size: 1.9rem;
+      letter-spacing: -0.07em;
+      margin-bottom: 16px;
+    }
+
+    .metric-grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .metric {
+      background: rgba(6, 29, 32, 0.48);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+    }
+
+    .metric small {
+      color: var(--mist);
+      display: block;
+      font-size: 0.7rem;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .metric strong {
+      color: var(--foam);
+      font-size: 1.2rem;
+    }
+
+    .section {
+      margin-top: 28px;
+    }
+
+    .section h2 {
+      font-size: clamp(3rem, 7vw, 7rem);
+      margin-bottom: 18px;
+    }
+
+    .spot-layout {
+      display: grid;
+      gap: 22px;
+      grid-template-columns: 0.75fr 1.25fr;
+    }
+
+    .spot-photo {
+      background:
+        linear-gradient(rgba(6, 29, 32, 0.2), rgba(6, 29, 32, 0.82)),
+        url("/spot-images/little-point-rockpile.png") center / cover;
+      border: 1px solid var(--line);
+      border-radius: 34px;
+      min-height: 520px;
+    }
+
+    .report-card {
+      border-radius: 34px;
+      padding: 24px;
+    }
+
+    .report-head {
+      align-items: start;
+      display: flex;
+      gap: 18px;
+      justify-content: space-between;
+      margin-bottom: 18px;
+    }
+
+    .report-card h3 {
+      font-size: clamp(2.6rem, 5vw, 5rem);
+    }
+
+    .tag {
+      border: 1px solid rgba(184, 255, 91, 0.4);
+      border-radius: 999px;
+      color: var(--acid);
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 8px 10px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .conditions {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(3, 1fr);
+      margin: 22px 0;
+    }
+
+    .conditions .metric {
+      min-height: 120px;
+    }
+
+    .log {
+      background: var(--paper);
+      border-radius: 24px;
+      color: var(--kelp);
+      overflow: hidden;
+    }
+
+    .log video,
+    .log .video {
+      align-items: center;
+      background:
+        radial-gradient(circle at 24% 34%, rgba(255,255,255,.25), transparent 10rem),
+        linear-gradient(140deg, #345a5c, #081d21);
+      color: rgba(245, 236, 216, 0.75);
+      display: flex;
+      font-weight: 800;
+      height: 240px;
+      justify-content: center;
+    }
+
+    .log-body {
+      padding: 22px;
+    }
+
+    .log-body p {
+      font-family: "Fraunces", Georgia, serif;
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 1.18;
+      margin: 0 0 18px;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      background: rgba(6, 29, 32, 0.08);
+      border-radius: 999px;
+      font-size: 0.74rem;
+      font-weight: 800;
+      padding: 8px 10px;
+      text-transform: uppercase;
+    }
+
+    details.comments {
+      border-top: 1px dashed rgba(6, 29, 32, 0.22);
+      margin-top: 18px;
+      padding-top: 14px;
+    }
+
+    details.comments summary {
+      cursor: pointer;
+      font-weight: 900;
+      list-style: none;
+    }
+
+    .comment {
+      background: rgba(6, 29, 32, 0.06);
+      border-radius: 16px;
+      margin-top: 10px;
+      padding: 12px;
+    }
+
+    .comment.reply {
+      margin-left: 22px;
+    }
+
+    .comment small {
+      color: rgba(6, 29, 32, 0.55);
+      display: block;
+      font-weight: 800;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .account-strip {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .account-card {
+      border-radius: 28px;
+      min-height: 180px;
+      padding: 22px;
+    }
+
+    .account-card b {
+      display: block;
+      font-size: 1.9rem;
+      letter-spacing: -0.06em;
+      margin-top: 22px;
+    }
+
+    .button {
+      background: var(--signal);
+      border: 0;
+      border-radius: 999px;
+      box-shadow: 0 18px 36px rgba(255, 106, 42, 0.24);
+      color: #170904;
+      display: inline-flex;
+      font-weight: 900;
+      margin-top: 24px;
+      padding: 14px 18px;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .reveal {
+      animation: rise 760ms cubic-bezier(.2, .8, .2, 1) both;
+    }
+
+    .d2 { animation-delay: 100ms; }
+    .d3 { animation-delay: 200ms; }
+    .d4 { animation-delay: 300ms; }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(22px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.18); }
+    }
+
+    @media (max-width: 980px) {
+      .hero,
+      .spot-layout,
+      .account-strip,
+      .conditions {
+        grid-template-columns: 1fr;
+      }
+
+      .nav {
+        align-items: flex-start;
+        gap: 12px;
+        flex-direction: column;
+      }
+
+      .map-stage {
+        min-height: 560px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <nav class="nav reveal">
+      <a class="brand" href="#">
+        <span class="brand-mark"></span>
+        <strong>SurfSD</strong>
+      </a>
+      <div class="nav-links">
+        <a class="active" href="#">Map</a>
+        <a href="#">Breaks</a>
+        <a href="#">Reports</a>
+        <a href="#">Account</a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="intro reveal d2">
+        <p class="eyebrow">San Diego field terminal</p>
+        <h1>Surf intel, not surf noise.</h1>
+        <p>A rougher, moodier SurfSD direction: more like a field notebook crossed with a coastal radar screen. Less toy-like, more local, more alive.</p>
+        <div class="pills">
+          <span class="pill">24 breaks</span>
+          <span class="pill">Live reports</span>
+          <span class="pill">Community verified</span>
+        </div>
+        <a class="button" href="#">Drop a report</a>
+      </div>
+
+      <div class="map-stage reveal d3">
+        <span class="coastline"></span>
+        <span class="marker hot m1"></span>
+        <span class="marker m2"></span>
+        <span class="marker hot m3"></span>
+        <span class="marker m4"></span>
+
+        <aside class="live-panel">
+          <div class="panel-top">
+            <span>Live San Diego Report</span>
+            <span>Jun 28 · 4:21 PM</span>
+          </div>
+          <b>3.9 ft S swell @ 17s</b>
+          <div class="metric-grid">
+            <div class="metric"><small>Tide</small><strong>5.8 ft steady</strong></div>
+            <div class="metric"><small>Weather</small><strong>68 F · NW</strong></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section spot-layout">
+      <div class="spot-photo reveal"></div>
+      <div class="report-card reveal d2">
+        <div class="report-head">
+          <div>
+            <p class="eyebrow">Intermediate · reef break</p>
+            <h3>Little Point / Rockpile</h3>
+          </div>
+          <span class="tag">New Report Today</span>
+        </div>
+
+        <div class="conditions">
+          <div class="metric"><small>Swell</small><strong>4 ft SW</strong></div>
+          <div class="metric"><small>Rating</small><strong>7/10 · Decent</strong></div>
+          <div class="metric"><small>Updated</small><strong>4 min ago</strong></div>
+        </div>
+
+        <article class="log">
+          <div class="video">8 second clip preview</div>
+          <div class="log-body">
+            <p>3–4 ft and clean. Sets are inconsistent but the good ones are lining up near the rock.</p>
+            <div class="chips">
+              <span class="chip">AdamDev</span>
+              <span class="chip">10 Reports</span>
+              <span class="chip">Edited</span>
+            </div>
+
+            <details class="comments">
+              <summary>3 Comments</summary>
+              <div class="comment">
+                <small>LocalCheck</small>
+                Tide push helped for about twenty minutes.
+              </div>
+              <div class="comment reply">
+                <small>AdamDev replied</small>
+                Yeah, it got flatter right after.
+              </div>
+              <div class="comment">
+                <small>NorthCounty</small>
+                This layout keeps the thread tucked away until someone wants it.
+              </div>
+            </details>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="reveal">Account cockpit</h2>
+      <div class="account-strip">
+        <div class="account-card reveal d2">
+          <span class="mono-label">Username</span>
+          <b>WaveRider</b>
+        </div>
+        <div class="account-card reveal d3">
+          <span class="mono-label">Report history</span>
+          <b>18 posts</b>
+        </div>
+        <div class="account-card reveal d4">
+          <span class="mono-label">Next badge</span>
+          <b>100 Reports</b>
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

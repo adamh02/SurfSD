@@ -1,10 +1,10 @@
 import http from "node:http";
 import { config } from "./config.js";
-import { openDatabase, createComment, createReport, deleteCommentForUser, deleteReportForUser, findMostRecentReportForUser, findReportForUser, findSurfSpotBySlug, findUserById, listCommentsForSpot, listReportsForSpot, listReportsForUser, updateReportForUser } from "./db.js";
-import { decorateResponse, readForm, readMultipartForm, serveStatic } from "./httpUtils.js";
+import { openDatabase, createComment, createReport, deleteCommentForUser, deleteReportForUser, findPublicUserById, findReportForUser, findSurfSpotBySlug, findUserById, listCommentsForSpot, listRecentReports, listReportsForSpot, listReportsForUser, updateReportForUser, updateUserAvatar } from "./db.js";
+import { decorateResponse, readForm, readMultipartForm, readProfileImageForm, serveStatic } from "./httpUtils.js";
 import { changeUsername, login, requireUser, resetPassword, signup, validateLogin, validateSignup } from "./auth.js";
 import { destroySession, readSession, writeSession } from "./session.js";
-import { aboutPage, accountPage, editReportPage, mapPage, reportFormPage, spotPage } from "./views.js";
+import { aboutPage, accountPage, communityPage, editReportPage, homePage, mapPage, profilePage, reportFormPage, spotPage } from "./views.js";
 import { validateReport } from "./validation.js";
 import { getSpotConditions, placeholderConditions } from "./conditions.js";
 
@@ -36,14 +36,16 @@ export function createApp(options = {}) {
         url.pathname === "/styles.css" ||
         url.pathname === "/map.js" ||
         url.pathname === "/design-preview.html" ||
+        url.pathname === "/design-preview.js" ||
         url.pathname === "/sd-map.svg" ||
         url.pathname === "/surfsd-logo.png"
       ) {
         if (serveStatic(request, response)) return;
       }
 
-      if (request.method === "GET" && url.pathname === "/") return response.redirect("/map");
+      if (request.method === "GET" && url.pathname === "/") return response.html(homePage({ user: request.user, reports: listRecentReports(8) }));
       if (request.method === "GET" && url.pathname === "/about") return response.html(aboutPage({ user: request.user }));
+      if (request.method === "GET" && url.pathname === "/community") return response.html(communityPage({ user: request.user, reports: listRecentReports(24) }));
       if (request.method === "GET" && url.pathname === "/map") {
         // The map has one general San Diego conditions box. We use a known spot
         // near the middle of the county as the reference point.
@@ -51,12 +53,11 @@ export function createApp(options = {}) {
         const conditions = sanDiegoReferenceSpot
           ? await conditionsProvider(sanDiegoReferenceSpot).catch(() => placeholderConditions())
           : placeholderConditions();
-        return response.html(mapPage({ user: request.user, conditions }));
+        return response.html(mapPage({ user: request.user, conditions, recentReports: listRecentReports(20) }));
       }
       if (request.method === "GET" && url.pathname === "/account") {
         return response.html(accountPage({
           user: request.user,
-          recentReport: request.user ? findMostRecentReportForUser(request.user.id) : undefined,
           reports: request.user ? listReportsForUser(request.user.id) : [],
           error: url.searchParams.get("error") || "",
           message: url.searchParams.get("message") || "",
@@ -68,6 +69,10 @@ export function createApp(options = {}) {
       if (request.method === "POST" && url.pathname === "/login") return await handleLogin(request, response);
       if (request.method === "POST" && url.pathname === "/account/username") return await handleChangeUsername(request, response);
       if (request.method === "POST" && url.pathname === "/account/password") return await handleResetPassword(request, response);
+      if (request.method === "POST" && url.pathname === "/account/avatar") return await handleUpdateAvatar(request, response);
+      if (request.method === "POST" && url.pathname === "/account/avatar/remove") return handleRemoveAvatar(request, response);
+      const profileMatch = url.pathname.match(/^\/users\/(\d+)$/);
+      if (request.method === "GET" && profileMatch) return handleProfilePage(request, response, profileMatch[1]);
       const editReportMatch = url.pathname.match(/^\/reports\/(\d+)\/edit$/);
       if (request.method === "GET" && editReportMatch) return handleEditReportPage(request, response, editReportMatch[1]);
       if (request.method === "POST" && editReportMatch) return await handleUpdateReport(request, response, editReportMatch[1]);
@@ -99,9 +104,40 @@ export function createApp(options = {}) {
         response.html(accountPage({ user: request.user, error: "Request body is too large." }), 413);
         return;
       }
-      response.html(`<h1>Something went wrong</h1><p>${error.message}</p>`, 500);
+      response.html(`<h1>Something Went Wrong</h1><p>${error.message}</p>`, 500);
     }
   });
+}
+
+// Saves a small profile photo for the logged-in account.
+async function handleUpdateAvatar(request, response) {
+  if (!requireUser(request, response)) return;
+  let upload;
+  try {
+    upload = await readProfileImageForm(request);
+  } catch (error) {
+    if (error.message === "Request body is too large.") {
+      return response.redirect(`/account?error=${encodeURIComponent("Profile photo must be 5 MB or smaller.")}`);
+    }
+    throw error;
+  }
+
+  if (upload.errors.length) return response.redirect(`/account?error=${encodeURIComponent(upload.errors.join(" "))}`);
+  if (!upload.file) return response.redirect(`/account?error=${encodeURIComponent("Choose a profile photo to upload.")}`);
+  updateUserAvatar(request.user.id, upload.file.imageUrl);
+  response.redirect("/account?message=Profile Photo Updated");
+}
+
+function handleRemoveAvatar(request, response) {
+  if (!requireUser(request, response)) return;
+  updateUserAvatar(request.user.id, null);
+  response.redirect("/account?message=Profile Photo Removed");
+}
+
+function handleProfilePage(request, response, userId) {
+  const profile = findPublicUserById(Number(userId));
+  if (!profile) return response.notFound();
+  response.html(profilePage({ user: request.user, profile, reports: listReportsForUser(profile.id) }));
 }
 
 // Creates a new account, then immediately logs that person in.

@@ -85,7 +85,7 @@ function createTestClient() {
         chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="${name}"\r\n\r\n${value}\r\n`);
       }
       if (file) {
-        chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="video"; filename="${file.filename}"\r\nContent-Type: ${file.type}\r\n\r\n`);
+        chunks.push(`--${boundary}\r\nContent-Disposition: form-data; name="${file.fieldName || "video"}"; filename="${file.filename}"\r\nContent-Type: ${file.type}\r\n\r\n`);
         chunks.push(file.body.toString("binary"));
         chunks.push("\r\n");
       }
@@ -158,6 +158,109 @@ test("account page lists profile settings and report history", async () => {
     assert.match(text, /data-confirm="Are you sure you want to delete this surf report\?"/);
     assert.match(text, /Member Since/);
   } finally {
+    await client.cleanup();
+  }
+});
+
+test("home and community pages use the approved navigation and live reports", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "HomeReporter",
+      email: "home-reporter@example.com",
+      password: "password123",
+      next: "/account"
+    });
+    await client.postMultipart("/spots/windansea/reports", {
+      description: "Homepage community report.",
+      waveHeight: "4",
+      rating: "8"
+    });
+
+    const home = await client.get("/");
+    assert.equal(home.response.status, 200);
+    assert.match(home.text, /Know Before You Paddle Out\./);
+    assert.match(home.text, /Homepage community report\./);
+    assert.match(home.text, /href="\/about"/);
+    assert.match(home.text, />Feed</);
+    assert.match(home.text, /src="\/surfsd-logo\.png"/);
+    assert.doesNotMatch(home.text, /Spot Page/);
+    assert.doesNotMatch(home.text, /Community Live|Post Report/);
+
+    const community = await client.get("/community");
+    assert.equal(community.response.status, 200);
+    assert.match(community.text, /Latest Surf Reports\./);
+    assert.match(community.text, /Homepage community report\./);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("public profiles show community totals without exposing private email", async () => {
+  const client = createTestClient();
+  try {
+    await client.postForm("/signup", {
+      name: "ProfileSurfer",
+      email: "private-profile@example.com",
+      password: "password123",
+      next: "/account"
+    });
+    await client.postMultipart("/spots/swamis/reports", {
+      description: "Public profile report.",
+      waveHeight: "3",
+      rating: "7"
+    });
+    const report = getDatabase().prepare("SELECT id FROM reports").get();
+    await client.postForm(`/reports/${report.id}/comments`, {
+      body: "Profile comment count.",
+      next: "/spots/swamis"
+    });
+
+    const storedUser = findUserByEmail("private-profile@example.com");
+    const profile = await client.get(`/users/${storedUser.id}`);
+    assert.equal(profile.response.status, 200);
+    assert.match(profile.text, /ProfileSurfer/);
+    assert.match(profile.text, /Public profile report\./);
+    assert.match(profile.text, /<span>Reports<\/span><strong>1<\/strong>/);
+    assert.match(profile.text, /<span>Comments<\/span><strong>1<\/strong>/);
+    assert.doesNotMatch(profile.text, /private-profile@example\.com/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("users can upload and remove a profile photo", async () => {
+  const client = createTestClient();
+  let uploadedPath;
+  try {
+    await client.postForm("/signup", {
+      name: "PhotoSurfer",
+      email: "photo-surfer@example.com",
+      password: "password123",
+      next: "/account"
+    });
+
+    const uploaded = await client.postMultipart("/account/avatar", {}, {
+      fieldName: "avatar",
+      filename: "profile.png",
+      type: "image/png",
+      body: Buffer.from("small-profile-image")
+    });
+    assert.equal(uploaded.response.status, 303);
+    assert.equal(uploaded.response.headers.get("location"), "/account?message=Profile Photo Updated");
+
+    const storedUser = findUserByEmail("photo-surfer@example.com");
+    assert.match(storedUser.avatarUrl, /^\/uploads\/.+\.png$/);
+    uploadedPath = path.join(process.cwd(), "public", storedUser.avatarUrl.replace(/^\//, ""));
+
+    const profile = await client.get(`/users/${storedUser.id}`);
+    assert.match(profile.text, new RegExp(storedUser.avatarUrl.replaceAll("/", "\\/")));
+
+    const removed = await client.postForm("/account/avatar/remove", {});
+    assert.equal(removed.response.headers.get("location"), "/account?message=Profile Photo Removed");
+    assert.equal(findUserByEmail("photo-surfer@example.com").avatarUrl, null);
+  } finally {
+    if (uploadedPath && fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
     await client.cleanup();
   }
 });
@@ -244,7 +347,7 @@ test("users can edit their own reports within three hours", async () => {
 
     const editPage = await client.get(`/reports/${report.id}/edit`);
     assert.equal(editPage.response.status, 200);
-    assert.match(editPage.text, /Edit report/);
+    assert.match(editPage.text, /Edit Report/);
 
     const updated = await client.postForm(`/reports/${report.id}/edit`, {
       description: "Updated report text.",
@@ -346,7 +449,8 @@ test("users can comment on surf reports", async () => {
 
     const spotPage = await client.get("/spots/swamis");
     assert.match(spotPage.text, /<details class="report-comments">/);
-    assert.match(spotPage.text, /<summary>1 Comment<\/summary>/);
+    assert.match(spotPage.text, /comment-summary-main/);
+    assert.match(spotPage.text, /<strong>Comments<\/strong><small>1 Comment<\/small>/);
     assert.match(spotPage.text, /Commenter/);
     assert.match(spotPage.text, /Thanks for the update!/);
   } finally {
@@ -699,8 +803,11 @@ test("map conditions show a live timestamp", async () => {
   try {
     const { response, text } = await client.get("/map");
     assert.equal(response.status, 200);
-    assert.match(text, /Live San Diego report/);
+    assert.match(text, /Live San Diego Report/);
     assert.match(text, /<time datetime="[^"]+">[^<]+<\/time>/);
+    assert.match(text, /placeholder="Search Surf Spots"/);
+    assert.doesNotMatch(text, /data-map-spot-preview/);
+    assert.doesNotMatch(text, /class="map-live-pill"/);
   } finally {
     await client.cleanup();
   }

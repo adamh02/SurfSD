@@ -3,14 +3,14 @@
 
   # SurfSD
 
-  **A community driven surf reporting platform for San Diego surfers.**
+  **A community-driven surf reporting platform for San Diego surfers.**
 </div>
 
 ## About the Project
 
-SurfSD is a full stack web application I made to make local surf conditions more accessable. Surf cameras and forecast charts are helpful, but they do not always show what the waves actually look like from the beach. SurfSD lets local surfers share first hand reports for spots across San Diego.
+SurfSD is a full-stack web application I made to make local surf conditions more accessible. Surf cameras and forecast charts are helpful, but they do not always show what the waves actually look like from the beach. SurfSD lets local surfers share firsthand reports for spots across San Diego.
 
-Users can explore surf spots on an interactive map, view current swell, tide, and weather information, create an account, and publish a report with wave height, an optional rating, a description, and an optional video.
+Users can explore surf spots on an interactive map, view current swell, tide, and weather information, create a community profile, and publish a report with wave height, an optional rating, a description, and an optional video. Surfers can also comment, reply, and follow report activity through public profiles.
 
 This is an ongoing student project, so I am continuing to improve the design, data accuracy, uploads, and overall user experience.
 
@@ -36,7 +36,7 @@ Users with an account can publish condition reports. Reports include wave height
 
 ### User Accounts
 
-Users can sign up, log in, log out, and view their account details and most recent report.
+Users can sign up, log in with an email or username, add a profile photo, manage account settings, view report history, and open a public community profile.
 
 ![SurfSD account page with email redacted](docs/screenshots/account-redacted.png)
 
@@ -48,12 +48,16 @@ Users can sign up, log in, log out, and view their account details and most rece
 - Current tide height and rising, falling, or steady trend
 - Hourly weather conditions from the National Weather Service
 - Account signup, login, logout, and account overview
+- Public profiles with profile photos, report totals, comment totals, and contributor badges
+- Email-or-username login, password reset, and username changes with a 14-day cooldown
 - Protected report creation for authenticated users
 - Surf reports with descriptions and wave heights up to 100 feet
 - Optional 1–10 ratings and MP4, WebM, or MOV videos
+- Report editing within three hours and owner-controlled report deletion
+- Collapsible comment threads with replies and owner-controlled comment deletion
 - Relative timestamps such as "3 minutes ago"
-- Responsive server rendered interface
-- Automated tests for authentication, reports, validation, pages, uploads, and tides
+- Responsive server-rendered interface with a side navigation drawer
+- Automated tests for authentication, profiles, reports, comments, validation, pages, uploads, and tides
 
 ## What I Used
 
@@ -77,6 +81,7 @@ I intentionally built this project without a web framework to better understand 
 - Report creation routes require an authenticated user.
 - Signup, login, and report form inputs are validated on the server.
 - Video uploads are limited to MP4, WebM, and MOV files.
+- Profile photos are limited to PNG, JPG, or WebP files up to 5 MB.
 - Upload requests are limited to 50 MB.
 - Secrets and local database files are excluded from Git with .gitignore.
 - A Content Security Policy limits which external resources the browser can load.
@@ -129,11 +134,12 @@ npm test
 The tests cover:
 
 - Signup and secure password hashing
-- Account page information
+- Account settings, public profiles, and profile photo uploads
 - Surf spot page loading
 - Local surf spot images
 - Authentication requirements for reports
-- Successful report creation
+- Report creation, editing, and deletion permissions
+- Comment threads, replies, deletion permissions, and confirmation prompts
 - Optional videos and ratings
 - Form validation
 - Upload-size error handling

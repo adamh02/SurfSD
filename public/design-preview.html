@@ -3,634 +3,3054 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SurfSD Design Preview</title>
+  <meta name="color-scheme" content="light">
+  <title>SurfSD — New Design Preview</title>
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT,WONK@9..144,500..900,60,1&family=IBM+Plex+Mono:wght@500;600;700&display=swap");
-
     :root {
-      --kelp: #061d20;
-      --deep: #092f36;
-      --reef: #0b5963;
-      --foam: #e8f2ed;
-      --mist: #bcd4cd;
-      --paper: #f5ecd8;
-      --sand: #d8b36b;
-      --signal: #ff6a2a;
-      --acid: #b8ff5b;
-      --line: rgba(232, 242, 237, 0.18);
-      --shadow: 0 28px 80px rgba(0, 0, 0, 0.36);
+      --ink: #092630;
+      --ink-deep: #04191f;
+      --ink-soft: #163a43;
+      --paper: #f6f1e7;
+      --paper-bright: #fffdf7;
+      --foam: #edf6f3;
+      --ocean: #087d87;
+      --ocean-bright: #12a4aa;
+      --ocean-pale: #cde7e4;
+      --coral: #ff5938;
+      --coral-dark: #d94024;
+      --sun: #f0c65a;
+      --muted: #61777d;
+      --line: rgba(9, 38, 48, 0.13);
+      --line-light: rgba(255, 255, 255, 0.2);
+      --shadow-sm: 0 12px 30px rgba(4, 25, 31, 0.1);
+      --shadow-md: 0 24px 70px rgba(4, 25, 31, 0.17);
+      --shadow-deep: 0 30px 90px rgba(2, 19, 24, 0.32);
+      --ui-font: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+      --display-font: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
-      background:
-        radial-gradient(circle at 20% 12%, rgba(255, 106, 42, 0.22), transparent 24rem),
-        radial-gradient(circle at 86% 18%, rgba(184, 255, 91, 0.13), transparent 22rem),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.045) 25%, transparent 25%) 0 0 / 34px 34px,
-        linear-gradient(160deg, #031315 0%, var(--kelp) 46%, #0d3d42 100%);
-      color: var(--foam);
-      font-family: "IBM Plex Mono", ui-monospace, monospace;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--ui-font);
       margin: 0;
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    body::before {
-      background:
-        repeating-radial-gradient(circle at 64% 34%, transparent 0 44px, rgba(232, 242, 237, 0.045) 45px 46px),
-        linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
-      content: "";
-      inset: 0;
-      mix-blend-mode: screen;
-      pointer-events: none;
-      position: fixed;
+    button,
+    input,
+    textarea {
+      font: inherit;
     }
 
-    .shell {
-      animation: rise 720ms cubic-bezier(.2, .8, .2, 1) both;
-      margin: 0 auto;
-      max-width: 1440px;
-      padding: 28px;
+    button {
+      color: inherit;
     }
 
-    .nav {
+    button,
+    summary {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    summary:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible {
+      outline: 3px solid var(--sun);
+      outline-offset: 3px;
+    }
+
+    img {
+      display: block;
+      max-width: 100%;
+    }
+
+    .topbar {
       align-items: center;
       backdrop-filter: blur(18px);
-      background: rgba(6, 29, 32, 0.74);
-      border: 1px solid var(--line);
-      border-radius: 28px;
-      box-shadow: var(--shadow);
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 28px;
-      padding: 14px 18px;
-      position: sticky;
-      top: 18px;
-      z-index: 4;
+      background: rgba(255, 253, 247, 0.9);
+      border-bottom: 1px solid rgba(9, 38, 48, 0.09);
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      height: 76px;
+      inset: 0 0 auto;
+      padding: 0 clamp(16px, 3vw, 42px);
+      position: fixed;
+      z-index: 100;
     }
 
-    .brand {
+    .topbar-left,
+    .topbar-right,
+    .brand-button,
+    .live-status,
+    .avatar-button {
       align-items: center;
       display: flex;
+    }
+
+    .topbar-left {
+      gap: 16px;
+      justify-self: start;
+    }
+
+    .topbar-right {
       gap: 12px;
-      text-decoration: none;
+      justify-self: end;
+    }
+
+    .icon-button,
+    .avatar-button,
+    .brand-button,
+    .plain-button,
+    .drawer-nav button,
+    .filter-button,
+    .map-marker,
+    .link-button {
+      background: none;
+      border: 0;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .icon-button {
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      display: inline-flex;
+      height: 44px;
+      justify-content: center;
+      transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+      width: 44px;
+    }
+
+    .icon-button:hover {
+      background: var(--foam);
+      border-color: rgba(8, 125, 135, 0.28);
+      transform: translateY(-1px);
+    }
+
+    .menu-lines {
+      display: grid;
+      gap: 5px;
+      width: 18px;
+    }
+
+    .menu-lines::before,
+    .menu-lines::after,
+    .menu-lines span {
+      background: var(--ink);
+      border-radius: 999px;
+      content: "";
+      display: block;
+      height: 2px;
+    }
+
+    .menu-lines::after {
+      width: 12px;
+    }
+
+    .brand-button {
+      gap: 10px;
     }
 
     .brand-mark {
-      background:
-        radial-gradient(circle at 62% 28%, var(--signal) 0 6px, transparent 7px),
-        conic-gradient(from 220deg, var(--foam), var(--reef), var(--foam));
+      align-items: center;
+      background: var(--ink);
+      border-radius: 50% 50% 42% 58%;
+      display: inline-flex;
+      height: 38px;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+      transform: rotate(-8deg);
+      width: 38px;
+    }
+
+    .brand-mark::before,
+    .brand-mark::after {
+      border: 2px solid var(--paper-bright);
+      border-left-color: transparent;
       border-radius: 50%;
-      box-shadow: inset 0 0 0 5px var(--kelp);
-      height: 46px;
-      width: 46px;
+      content: "";
+      height: 20px;
+      position: absolute;
+      transform: rotate(-22deg);
+      width: 26px;
     }
 
-    .brand strong {
-      color: var(--foam);
-      font-family: "Fraunces", Georgia, serif;
-      font-size: 1.35rem;
-      font-variation-settings: "WONK" 1, "SOFT" 60;
-      letter-spacing: -0.04em;
+    .brand-mark::after {
+      border-color: var(--coral);
+      border-left-color: transparent;
+      height: 12px;
+      left: 11px;
+      top: 12px;
+      width: 18px;
     }
 
-    .nav-links {
-      display: flex;
-      gap: 8px;
-    }
-
-    .nav-links a {
-      border: 1px solid transparent;
-      border-radius: 999px;
-      color: var(--mist);
-      font-size: 0.8rem;
+    .brand-word {
+      font-family: var(--display-font);
+      font-size: 1.55rem;
       font-weight: 700;
-      padding: 10px 14px;
-      text-decoration: none;
-      text-transform: uppercase;
+      letter-spacing: -0.055em;
+      line-height: 1;
     }
 
-    .nav-links a.active,
-    .nav-links a:hover {
-      background: var(--foam);
-      color: var(--kelp);
-    }
-
-    .hero {
-      display: grid;
-      gap: 22px;
-      grid-template-columns: minmax(320px, 0.9fr) minmax(520px, 1.1fr);
-      min-height: 680px;
-    }
-
-    .intro,
-    .live-panel,
-    .report-card,
-    .account-card {
-      backdrop-filter: blur(18px);
-      background: linear-gradient(160deg, rgba(232, 242, 237, 0.12), rgba(232, 242, 237, 0.055));
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-    }
-
-    .intro {
-      align-self: start;
-      border-radius: 34px;
-      padding: clamp(26px, 5vw, 56px);
-    }
-
-    .eyebrow {
-      color: var(--acid);
-      font-size: 0.78rem;
+    .preview-label {
+      border-left: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.66rem;
       font-weight: 800;
-      letter-spacing: 0.18em;
-      margin: 0 0 18px;
+      letter-spacing: 0.11em;
+      margin-left: 3px;
+      padding-left: 12px;
       text-transform: uppercase;
     }
 
-    h1, h2, h3 {
-      font-family: "Fraunces", Georgia, serif;
-      font-variation-settings: "WONK" 1, "SOFT" 60;
-      letter-spacing: -0.075em;
+    .live-status {
+      color: var(--ink-soft);
+      font-size: 0.74rem;
+      font-weight: 800;
+      gap: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      background: var(--coral);
+      border: 3px solid rgba(255, 89, 56, 0.17);
+      background-clip: padding-box;
+      border-radius: 50%;
+      height: 12px;
+      width: 12px;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .ghost-button {
+      align-items: center;
+      border: 0;
+      cursor: pointer;
+      display: inline-flex;
+      font-weight: 800;
+      gap: 10px;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 20px;
+      text-decoration: none;
+      transition: background 160ms ease, color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .primary-button {
+      background: var(--coral);
+      border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(255, 89, 56, 0.25);
+      color: white;
+    }
+
+    .primary-button:hover {
+      background: var(--coral-dark);
+      box-shadow: 0 16px 38px rgba(255, 89, 56, 0.31);
+      transform: translateY(-2px);
+    }
+
+    .primary-button.compact {
+      min-height: 42px;
+      padding-inline: 16px;
+    }
+
+    .secondary-button {
+      background: var(--paper-bright);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+    }
+
+    .secondary-button:hover {
+      background: var(--foam);
+      transform: translateY(-2px);
+    }
+
+    .ghost-button {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 12px;
+      color: white;
+    }
+
+    .ghost-button:hover {
+      background: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+
+    .avatar-button {
+      background: var(--ink);
+      border-radius: 50%;
+      color: white;
+      font-size: 0.74rem;
+      font-weight: 900;
+      height: 42px;
+      justify-content: center;
+      letter-spacing: 0.03em;
+      width: 42px;
+    }
+
+    .drawer-scrim {
+      background: rgba(1, 14, 18, 0.52);
+      border: 0;
+      cursor: pointer;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      position: fixed;
+      transition: opacity 240ms ease;
+      z-index: 190;
+    }
+
+    .side-drawer {
+      background:
+        radial-gradient(circle at 10% 0%, rgba(18, 164, 170, 0.2), transparent 23rem),
+        linear-gradient(160deg, #0b3039 0%, var(--ink-deep) 72%);
+      box-shadow: var(--shadow-deep);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      inset: 0 auto 0 0;
+      max-width: 88vw;
+      overflow-y: auto;
+      padding: 24px;
+      position: fixed;
+      transform: translateX(-104%);
+      transition: transform 320ms cubic-bezier(.2, .82, .2, 1);
+      width: 360px;
+      z-index: 200;
+    }
+
+    body.menu-open {
+      overflow: hidden;
+    }
+
+    body.menu-open .drawer-scrim {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    body.menu-open .side-drawer {
+      transform: translateX(0);
+    }
+
+    .drawer-head {
+      align-items: center;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 56px;
+    }
+
+    .drawer-head .brand-mark {
+      background: white;
+    }
+
+    .drawer-head .brand-mark::before {
+      border-color: var(--ink);
+      border-left-color: transparent;
+    }
+
+    .drawer-head .brand-word {
+      color: white;
+    }
+
+    .drawer-head .icon-button {
+      border-color: rgba(255, 255, 255, 0.16);
+      color: white;
+    }
+
+    .close-icon {
+      height: 18px;
+      position: relative;
+      width: 18px;
+    }
+
+    .close-icon::before,
+    .close-icon::after {
+      background: currentColor;
+      content: "";
+      height: 2px;
+      left: 1px;
+      position: absolute;
+      top: 8px;
+      transform: rotate(45deg);
+      width: 16px;
+    }
+
+    .close-icon::after {
+      transform: rotate(-45deg);
+    }
+
+    .drawer-kicker,
+    .eyebrow {
+      font-size: 0.7rem;
+      font-weight: 900;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .drawer-kicker {
+      color: #8ccdd0;
+      margin: 0 0 14px 12px;
+    }
+
+    .drawer-nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .drawer-nav button {
+      align-items: center;
+      border-radius: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      display: grid;
+      font-size: 1.04rem;
+      font-weight: 700;
+      gap: 14px;
+      grid-template-columns: 34px 1fr auto;
+      padding: 13px 14px;
+      text-align: left;
+      transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+      width: 100%;
+    }
+
+    .drawer-nav button:hover,
+    .drawer-nav button.is-active {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      transform: translateX(3px);
+    }
+
+    .drawer-nav button.is-active::after {
+      background: var(--coral);
+      border-radius: 999px;
+      content: "";
+      height: 7px;
+      width: 7px;
+    }
+
+    .nav-icon {
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 10px;
+      display: flex;
+      font-size: 0.9rem;
+      height: 34px;
+      justify-content: center;
+      width: 34px;
+    }
+
+    .drawer-spacer {
+      flex: 1;
+      min-height: 42px;
+    }
+
+    .preview-safe {
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      margin-top: 28px;
+      padding: 16px;
+    }
+
+    .preview-safe strong {
+      display: block;
+      font-size: 0.84rem;
+      margin-bottom: 5px;
+    }
+
+    .preview-safe p {
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 0.78rem;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    .drawer-profile {
+      align-items: center;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 42px 1fr auto;
+      margin-top: 20px;
+      padding-top: 20px;
+    }
+
+    .drawer-avatar {
+      align-items: center;
+      background: var(--paper);
+      border-radius: 50%;
+      color: var(--ink);
+      display: flex;
+      font-size: 0.75rem;
+      font-weight: 900;
+      height: 42px;
+      justify-content: center;
+      width: 42px;
+    }
+
+    .drawer-profile strong,
+    .drawer-profile span {
+      display: block;
+    }
+
+    .drawer-profile span {
+      color: rgba(255, 255, 255, 0.52);
+      font-size: 0.72rem;
+      margin-top: 2px;
+    }
+
+    .drawer-profile .plain-button {
+      color: #9fd7d8;
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .view {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .view.is-active {
+      animation: view-enter 520ms cubic-bezier(.2, .75, .2, 1) both;
+      display: block;
+    }
+
+    .view-home {
+      background: var(--ink-deep);
+      color: white;
+    }
+
+    .home-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(360px, 0.72fr);
+      grid-template-rows: minmax(0, 1fr) auto;
+      gap: 36px 28px;
+      min-height: 100svh;
+      overflow: hidden;
+      padding: clamp(132px, 16vh, 180px) clamp(22px, 6vw, 92px) 54px;
+      position: relative;
+    }
+
+    .home-hero::before {
+      background:
+        linear-gradient(90deg, rgba(3, 22, 28, 0.96) 0%, rgba(3, 22, 28, 0.7) 48%, rgba(3, 22, 28, 0.15) 100%),
+        linear-gradient(0deg, rgba(3, 22, 28, 0.82), transparent 40%),
+        url("/spot-images/windansea.png") center / cover;
+      content: "";
+      inset: 0;
+      position: absolute;
+      transform: scale(1.015);
+    }
+
+    .home-hero::after {
+      background-image: radial-gradient(rgba(255, 255, 255, 0.12) 0.7px, transparent 0.7px);
+      background-size: 7px 7px;
+      content: "";
+      inset: 0;
+      mix-blend-mode: soft-light;
+      opacity: 0.22;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .hero-copy,
+    .hero-report {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-copy {
+      align-self: center;
+      max-width: 790px;
+    }
+
+    .hero-copy .eyebrow {
+      color: #8bdde0;
+      margin: 0 0 20px;
+    }
+
+    .hero-copy h1,
+    .section-title h1,
+    .spot-identity h1,
+    .account-title h1 {
+      font-family: var(--display-font);
+      font-weight: 500;
+      letter-spacing: -0.055em;
       line-height: 0.9;
       margin: 0;
     }
 
-    h1 {
-      font-size: clamp(5rem, 12vw, 12.5rem);
-      max-width: 7ch;
+    .hero-copy h1 {
+      font-size: clamp(4.8rem, 9.4vw, 10rem);
+      max-width: 7.2ch;
+      text-wrap: balance;
     }
 
-    .intro p {
-      color: var(--mist);
-      font-size: clamp(1rem, 1.5vw, 1.25rem);
-      line-height: 1.6;
-      max-width: 36rem;
+    .hero-copy .hero-lead {
+      color: rgba(255, 255, 255, 0.72);
+      font-size: clamp(1.08rem, 1.45vw, 1.34rem);
+      line-height: 1.62;
+      margin: 28px 0 30px;
+      max-width: 610px;
     }
 
-    .pills {
+    .hero-actions {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 12px;
+    }
+
+    .hero-trust {
+      align-items: center;
+      color: rgba(255, 255, 255, 0.58);
+      display: flex;
+      font-size: 0.78rem;
+      font-weight: 700;
+      gap: 12px;
       margin-top: 28px;
     }
 
-    .pill {
-      background: rgba(255, 106, 42, 0.16);
-      border: 1px solid rgba(255, 106, 42, 0.38);
+    .trust-faces {
+      display: flex;
+    }
+
+    .trust-face {
+      align-items: center;
+      background: var(--ocean);
+      border: 2px solid var(--ink-deep);
+      border-radius: 50%;
+      display: flex;
+      font-size: 0.62rem;
+      font-weight: 900;
+      height: 30px;
+      justify-content: center;
+      margin-left: -8px;
+      width: 30px;
+    }
+
+    .trust-face:first-child {
+      background: var(--sun);
+      color: var(--ink);
+      margin-left: 0;
+    }
+
+    .trust-face:last-child {
+      background: var(--coral);
+    }
+
+    .hero-report {
+      align-self: center;
+      justify-self: end;
+      max-width: 410px;
+      width: 100%;
+    }
+
+    .floating-report {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 253, 247, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 22px;
+      box-shadow: var(--shadow-deep);
+      color: var(--ink);
+      overflow: hidden;
+      transform: rotate(1.5deg);
+    }
+
+    .floating-report-media {
+      aspect-ratio: 16 / 10;
+      background:
+        linear-gradient(0deg, rgba(4, 25, 31, 0.42), transparent 58%),
+        url("/spot-images/little-point-rockpile.png") center / cover;
+      position: relative;
+    }
+
+    .fresh-flag {
+      align-items: center;
+      background: rgba(5, 25, 31, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.18);
       border-radius: 999px;
-      color: #ffd1bf;
-      font-size: 0.78rem;
-      font-weight: 800;
-      padding: 10px 14px;
+      color: white;
+      display: flex;
+      font-size: 0.66rem;
+      font-weight: 900;
+      gap: 7px;
+      left: 14px;
+      letter-spacing: 0.08em;
+      padding: 7px 10px;
+      position: absolute;
+      text-transform: uppercase;
+      top: 14px;
+    }
+
+    .fresh-flag::before {
+      background: var(--coral);
+      border-radius: 50%;
+      content: "";
+      height: 7px;
+      width: 7px;
+    }
+
+    .floating-location {
+      bottom: 14px;
+      color: white;
+      left: 16px;
+      position: absolute;
+    }
+
+    .floating-location strong,
+    .floating-location span {
+      display: block;
+    }
+
+    .floating-location strong {
+      font-size: 1.16rem;
+    }
+
+    .floating-location span {
+      color: rgba(255, 255, 255, 0.72);
+      font-size: 0.75rem;
+      margin-top: 2px;
+    }
+
+    .floating-report-body {
+      padding: 18px;
+    }
+
+    .report-user-row,
+    .report-engagement,
+    .community-author,
+    .feed-card-head,
+    .comment-author,
+    .activity-row {
+      align-items: center;
+      display: flex;
+    }
+
+    .report-user-row {
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .mini-avatar {
+      align-items: center;
+      background: var(--ink);
+      border-radius: 50%;
+      color: white;
+      display: inline-flex;
+      flex: 0 0 auto;
+      font-size: 0.66rem;
+      font-weight: 900;
+      height: 34px;
+      justify-content: center;
+      width: 34px;
+    }
+
+    .report-user-row strong,
+    .report-user-row span {
+      display: block;
+    }
+
+    .report-user-row strong {
+      font-size: 0.82rem;
+    }
+
+    .report-user-row span {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .report-badge {
+      background: var(--foam);
+      border-radius: 999px;
+      color: var(--ocean);
+      font-size: 0.62rem;
+      font-weight: 900;
+      margin-left: auto;
+      padding: 6px 9px;
       text-transform: uppercase;
     }
 
-    .map-stage {
+    .floating-report-body > p {
+      font-family: var(--display-font);
+      font-size: 1.22rem;
+      line-height: 1.35;
+      margin: 0 0 16px;
+    }
+
+    .quick-metrics {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .quick-metric {
+      background: var(--foam);
+      border: 1px solid rgba(9, 38, 48, 0.07);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .quick-metric span,
+    .quick-metric strong {
+      display: block;
+    }
+
+    .quick-metric span {
+      color: var(--muted);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      margin-bottom: 3px;
+      text-transform: uppercase;
+    }
+
+    .quick-metric strong {
+      font-size: 0.84rem;
+    }
+
+    .report-engagement {
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 700;
+      gap: 15px;
+      margin-top: 14px;
+      padding-top: 12px;
+    }
+
+    .report-engagement span:last-child {
+      margin-left: auto;
+    }
+
+    .coast-pulse {
+      align-items: center;
+      display: grid;
+      gap: 14px;
+      grid-column: 1 / -1;
+      grid-template-columns: auto 1fr;
+      position: relative;
+      z-index: 3;
+    }
+
+    .coast-pulse > span {
+      color: rgba(255, 255, 255, 0.55);
+      font-size: 0.64rem;
+      font-weight: 900;
+      letter-spacing: 0.13em;
+      text-transform: uppercase;
+    }
+
+    .pulse-track {
+      background: rgba(255, 255, 255, 0.09);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      display: grid;
+      gap: 0;
+      grid-template-columns: repeat(4, 1fr);
+      overflow: hidden;
+    }
+
+    .pulse-item {
+      border-left: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.65);
+      display: grid;
+      font-size: 0.68rem;
+      gap: 2px;
+      grid-template-columns: 8px 1fr;
+      padding: 11px 14px;
+    }
+
+    .pulse-item:first-child {
+      border-left: 0;
+    }
+
+    .pulse-item::before {
+      background: var(--coral);
+      border-radius: 50%;
+      content: "";
+      height: 6px;
+      margin-top: 4px;
+      width: 6px;
+    }
+
+    .pulse-item strong {
+      color: white;
+      font-size: 0.76rem;
+    }
+
+    .home-intro {
+      background:
+        radial-gradient(circle at 90% 0%, rgba(8, 125, 135, 0.12), transparent 30rem),
+        var(--paper);
+      color: var(--ink);
+      padding: clamp(76px, 10vw, 140px) clamp(22px, 6vw, 92px);
+    }
+
+    .manifesto {
+      align-items: end;
+      display: grid;
+      gap: 40px;
+      grid-template-columns: 0.82fr 1.18fr;
+      margin: 0 auto 80px;
+      max-width: 1320px;
+    }
+
+    .manifesto .eyebrow,
+    .section-title .eyebrow,
+    .spot-identity .eyebrow,
+    .account-title .eyebrow {
+      color: var(--ocean);
+      margin: 0 0 16px;
+    }
+
+    .manifesto h2 {
+      font-family: var(--display-font);
+      font-size: clamp(3.2rem, 6vw, 6.5rem);
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 0.96;
+      margin: 0;
+    }
+
+    .manifesto-copy {
+      border-left: 1px solid var(--line);
+      padding-left: clamp(24px, 5vw, 70px);
+    }
+
+    .manifesto-copy p {
+      color: var(--muted);
+      font-size: clamp(1.08rem, 1.6vw, 1.35rem);
+      line-height: 1.65;
+      margin: 0;
+      max-width: 720px;
+    }
+
+    .manifesto-copy strong {
+      color: var(--ink);
+    }
+
+    .feature-row {
+      display: grid;
+      gap: 1px;
+      grid-template-columns: repeat(3, 1fr);
+      margin: 0 auto;
+      max-width: 1320px;
+      overflow: hidden;
+    }
+
+    .feature {
+      background: rgba(255, 253, 247, 0.68);
       border: 1px solid var(--line);
-      border-radius: 40px;
-      min-height: 680px;
+      margin-left: -1px;
+      min-height: 250px;
+      padding: clamp(24px, 3vw, 38px);
+    }
+
+    .feature:first-child {
+      border-radius: 20px 0 0 20px;
+      margin-left: 0;
+    }
+
+    .feature:last-child {
+      border-radius: 0 20px 20px 0;
+    }
+
+    .feature-number {
+      color: var(--coral);
+      font-family: var(--display-font);
+      font-size: 1.25rem;
+      font-style: italic;
+    }
+
+    .feature h3 {
+      font-family: var(--display-font);
+      font-size: clamp(1.75rem, 2.5vw, 2.4rem);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      margin: 46px 0 12px;
+    }
+
+    .feature p {
+      color: var(--muted);
+      line-height: 1.58;
+      margin: 0;
+      max-width: 32ch;
+    }
+
+    .view-map {
+      background: #dcebea;
+      padding-top: 76px;
+    }
+
+    .map-workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 410px;
+      min-height: calc(100vh - 76px);
+    }
+
+    .map-canvas {
+      background: #b9dfe7 url("/sd-map.svg") center 42% / cover no-repeat;
+      min-height: calc(100vh - 76px);
       overflow: hidden;
       position: relative;
     }
 
-    .map-stage::before {
+    .map-canvas::after {
       background:
-        linear-gradient(rgba(232, 242, 237, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
-        linear-gradient(90deg, rgba(232, 242, 237, 0.08) 1px, transparent 1px) 0 0 / 42px 42px,
-        radial-gradient(circle at 34% 48%, rgba(11, 89, 99, 0.95), transparent 19rem),
-        linear-gradient(130deg, #08292e, #0c4b52 48%, #c59a4b 49%, #102e31 51%, #052024);
+        linear-gradient(90deg, rgba(9, 38, 48, 0.1), transparent 20%, transparent 80%, rgba(9, 38, 48, 0.08)),
+        radial-gradient(circle at center, transparent 20%, rgba(9, 38, 48, 0.06));
+      content: "";
+      inset: 0;
+      pointer-events: none;
+      position: absolute;
+    }
+
+    .map-toolbar {
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      left: 24px;
+      position: absolute;
+      right: 24px;
+      top: 22px;
+      z-index: 5;
+    }
+
+    .map-search {
+      align-items: center;
+      backdrop-filter: blur(14px);
+      background: rgba(255, 253, 247, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.74);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      gap: 10px;
+      height: 48px;
+      max-width: 420px;
+      padding: 0 15px;
+      width: 100%;
+    }
+
+    .search-icon {
+      border: 2px solid var(--ink);
+      border-radius: 50%;
+      display: inline-block;
+      height: 14px;
+      position: relative;
+      width: 14px;
+    }
+
+    .search-icon::after {
+      background: var(--ink);
+      content: "";
+      height: 2px;
+      position: absolute;
+      right: -6px;
+      top: 10px;
+      transform: rotate(45deg);
+      width: 7px;
+    }
+
+    .map-search input {
+      background: transparent;
+      border: 0;
+      color: var(--ink);
+      min-width: 0;
+      outline: 0;
+      width: 100%;
+    }
+
+    .map-search input::placeholder {
+      color: #6d8288;
+    }
+
+    .map-live-pill {
+      align-items: center;
+      backdrop-filter: blur(14px);
+      background: rgba(9, 38, 48, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 14px;
+      color: white;
+      display: flex;
+      font-size: 0.72rem;
+      font-weight: 800;
+      gap: 8px;
+      margin-left: auto;
+      min-height: 48px;
+      padding: 0 14px;
+      white-space: nowrap;
+    }
+
+    .map-marker {
+      align-items: center;
+      background: var(--paper-bright);
+      border: 3px solid var(--ink);
+      border-radius: 50% 50% 50% 7px;
+      box-shadow: 0 8px 20px rgba(4, 25, 31, 0.24);
+      display: flex;
+      height: 29px;
+      justify-content: center;
+      position: absolute;
+      transform: rotate(-45deg);
+      transition: background 160ms ease, transform 160ms ease;
+      width: 29px;
+      z-index: 4;
+    }
+
+    .map-marker::before {
+      background: var(--ocean);
+      border-radius: 50%;
+      content: "";
+      height: 8px;
+      transform: rotate(45deg);
+      width: 8px;
+    }
+
+    .map-marker.is-fresh::before {
+      background: var(--coral);
+      box-shadow: 0 0 0 5px rgba(255, 89, 56, 0.18);
+    }
+
+    .map-marker:hover,
+    .map-marker.is-active {
+      background: var(--sun);
+      transform: rotate(-45deg) scale(1.22);
+      z-index: 6;
+    }
+
+    .marker-oceanside { left: 50%; top: 14%; }
+    .marker-swamis { left: 53%; top: 29%; }
+    .marker-delmar { left: 50%; top: 43%; }
+    .marker-blacks { left: 48%; top: 50%; }
+    .marker-windansea { left: 46%; top: 59%; }
+    .marker-tourmaline { left: 45%; top: 69%; }
+    .marker-ob { left: 41%; top: 81%; }
+    .marker-ib { left: 36%; top: 92%; }
+
+    .map-brief {
+      backdrop-filter: blur(16px);
+      background: rgba(255, 253, 247, 0.95);
+      border: 1px solid rgba(255, 255, 255, 0.78);
+      border-radius: 20px;
+      bottom: 24px;
+      box-shadow: var(--shadow-md);
+      left: 24px;
+      max-width: 450px;
+      overflow: hidden;
+      position: absolute;
+      width: calc(100% - 48px);
+      z-index: 7;
+    }
+
+    .map-brief-photo {
+      background: url("/spot-images/windansea.png") center / cover;
+      min-height: 120px;
+      position: relative;
+    }
+
+    .map-brief-photo::after {
+      background: linear-gradient(0deg, rgba(4, 25, 31, 0.55), transparent);
       content: "";
       inset: 0;
       position: absolute;
     }
 
-    .coastline {
-      border-left: 5px solid rgba(232, 242, 237, 0.8);
-      border-radius: 50%;
-      height: 820px;
-      left: 37%;
-      opacity: 0.5;
+    .map-brief-photo span {
+      bottom: 12px;
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 900;
+      left: 15px;
+      letter-spacing: 0.09em;
       position: absolute;
-      top: -80px;
-      transform: rotate(13deg);
-      width: 270px;
+      text-transform: uppercase;
+      z-index: 2;
     }
 
-    .marker {
-      animation: pulse 2.4s infinite;
-      background: var(--foam);
-      border: 5px solid var(--kelp);
-      border-radius: 50%;
-      box-shadow: 0 0 0 2px var(--foam), 0 12px 30px rgba(0,0,0,.35);
-      height: 22px;
-      position: absolute;
-      width: 22px;
+    .map-brief-body {
+      padding: 16px;
     }
 
-    .marker.hot::after {
-      background: #e33131;
-      border-radius: 50%;
-      content: "";
-      height: 8px;
-      inset: 2px;
-      margin: auto;
-      position: absolute;
-      width: 8px;
-    }
-
-    .m1 { left: 42%; top: 16%; }
-    .m2 { left: 48%; top: 33%; animation-delay: .3s; }
-    .m3 { left: 52%; top: 49%; animation-delay: .6s; }
-    .m4 { left: 46%; top: 68%; animation-delay: .9s; }
-
-    .live-panel {
-      border-radius: 30px;
-      bottom: 24px;
-      left: 24px;
-      max-width: 430px;
-      padding: 24px;
-      position: absolute;
-      right: 24px;
-    }
-
-    .panel-top {
-      align-items: center;
+    .map-brief-title {
+      align-items: start;
       display: flex;
+      gap: 16px;
       justify-content: space-between;
-      margin-bottom: 14px;
     }
 
-    .panel-top span,
-    .mono-label {
-      color: var(--acid);
+    .map-brief-title h2 {
+      font-family: var(--display-font);
+      font-size: 2.05rem;
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      margin: 0;
+    }
+
+    .map-brief-title button {
+      background: var(--ink);
+      border: 0;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
       font-size: 0.72rem;
-      font-weight: 800;
-      letter-spacing: 0.14em;
+      font-weight: 900;
+      min-height: 38px;
+      padding: 0 12px;
+      white-space: nowrap;
+    }
+
+    .map-brief-body > p {
+      color: var(--muted);
+      font-size: 0.83rem;
+      line-height: 1.45;
+      margin: 8px 0 14px;
+    }
+
+    .map-condition-row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .map-condition-row span {
+      background: var(--foam);
+      border-radius: 10px;
+      display: block;
+      padding: 9px 10px;
+    }
+
+    .map-condition-row small,
+    .map-condition-row strong {
+      display: block;
+    }
+
+    .map-condition-row small {
+      color: var(--muted);
+      font-size: 0.57rem;
+      font-weight: 900;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
     }
 
-    .live-panel b {
-      color: var(--foam);
-      display: block;
-      font-size: 1.9rem;
-      letter-spacing: -0.07em;
-      margin-bottom: 16px;
+    .map-condition-row strong {
+      font-size: 0.78rem;
+      margin-top: 2px;
     }
 
-    .metric-grid {
+    .map-zoom {
+      bottom: 24px;
       display: grid;
-      gap: 10px;
-      grid-template-columns: repeat(2, 1fr);
+      gap: 7px;
+      position: absolute;
+      right: 24px;
+      z-index: 5;
     }
 
-    .metric {
-      background: rgba(6, 29, 32, 0.48);
+    .map-zoom button {
+      align-items: center;
+      background: var(--paper-bright);
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      display: flex;
+      font-size: 1.25rem;
+      font-weight: 700;
+      height: 42px;
+      justify-content: center;
+      width: 42px;
+    }
+
+    .map-feed {
+      background: var(--paper-bright);
+      border-left: 1px solid var(--line);
+      max-height: calc(100vh - 76px);
+      overflow-y: auto;
+      padding: 26px 22px 40px;
+    }
+
+    .feed-heading {
+      align-items: end;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .feed-heading h2 {
+      font-family: var(--display-font);
+      font-size: 2.25rem;
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      margin: 0;
+    }
+
+    .feed-heading span {
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 800;
+    }
+
+    .filter-row {
+      display: flex;
+      gap: 7px;
+      margin-bottom: 18px;
+      overflow-x: auto;
+      padding-bottom: 3px;
+      scrollbar-width: none;
+    }
+
+    .filter-row::-webkit-scrollbar {
+      display: none;
+    }
+
+    .filter-button {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      flex: 0 0 auto;
+      font-size: 0.7rem;
+      font-weight: 800;
+      padding: 8px 11px;
+    }
+
+    .filter-button.is-active {
+      background: var(--ink);
+      border-color: var(--ink);
+      color: white;
+    }
+
+    .feed-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .feed-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      cursor: pointer;
+      overflow: hidden;
+      text-align: left;
+      transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+      width: 100%;
+    }
+
+    .feed-card:hover {
+      border-color: rgba(8, 125, 135, 0.38);
+      box-shadow: var(--shadow-sm);
+      transform: translateY(-2px);
+    }
+
+    .feed-card-photo {
+      aspect-ratio: 16 / 7;
+      background-position: center;
+      background-size: cover;
+      display: block;
+      position: relative;
+    }
+
+    .feed-card-content {
+      display: block;
+    }
+
+    .photo-windansea { background-image: url("/spot-images/windansea.png"); }
+    .photo-blacks { background-image: url("/spot-images/blacks-beach.png"); }
+    .photo-swamis { background-image: url("/spot-images/swamis.png"); }
+    .photo-oceanside { background-image: url("/spot-images/oceanside-pier.webp"); }
+    .photo-rockpile { background-image: url("/spot-images/little-point-rockpile.png"); }
+    .photo-delmar { background-image: url("/spot-images/del-mar.png"); }
+
+    .feed-card-photo .fresh-flag {
+      left: 10px;
+      padding: 5px 8px;
+      top: 10px;
+    }
+
+    .feed-card-content {
+      padding: 13px;
+    }
+
+    .feed-card-head {
+      gap: 10px;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .feed-card-head strong {
+      font-family: var(--display-font);
+      font-size: 1.15rem;
+    }
+
+    .feed-card-head span {
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+    }
+
+    .feed-card-content > p {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      margin: 0 0 11px;
+    }
+
+    .feed-metrics {
+      align-items: center;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .feed-metrics span {
+      background: var(--foam);
+      border-radius: 7px;
+      color: var(--ink-soft);
+      font-size: 0.64rem;
+      font-weight: 800;
+      padding: 6px 8px;
+    }
+
+    .feed-metrics span:last-child {
+      background: rgba(255, 89, 56, 0.1);
+      color: var(--coral-dark);
+      margin-left: auto;
+    }
+
+    .view-spot,
+    .view-community,
+    .view-account {
+      background:
+        radial-gradient(circle at 85% 6%, rgba(8, 125, 135, 0.1), transparent 28rem),
+        var(--paper);
+      padding-top: 76px;
+    }
+
+    .spot-cover {
+      min-height: 55vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .spot-cover::before {
+      background:
+        linear-gradient(0deg, rgba(4, 25, 31, 0.94) 0%, rgba(4, 25, 31, 0.22) 65%),
+        url("/spot-images/windansea.png") center 54% / cover;
+      content: "";
+      inset: 0;
+      position: absolute;
+    }
+
+    .spot-cover-inner {
+      align-items: end;
+      display: flex;
+      inset: 0;
+      justify-content: space-between;
+      margin: 0 auto;
+      max-width: 1420px;
+      padding: 54px clamp(22px, 5vw, 72px);
+      position: absolute;
+    }
+
+    .spot-identity {
+      color: white;
+      max-width: 870px;
+    }
+
+    .spot-identity .eyebrow {
+      color: #8bdde0;
+    }
+
+    .spot-identity h1 {
+      font-size: clamp(5rem, 10vw, 10rem);
+    }
+
+    .spot-identity p {
+      color: rgba(255, 255, 255, 0.68);
+      font-size: clamp(1rem, 1.4vw, 1.22rem);
+      line-height: 1.55;
+      margin: 18px 0 0;
+      max-width: 720px;
+    }
+
+    .spot-freshness {
+      align-items: center;
+      backdrop-filter: blur(14px);
+      background: rgba(4, 25, 31, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 14px;
+      color: white;
+      display: flex;
+      flex: 0 0 auto;
+      font-size: 0.74rem;
+      font-weight: 800;
+      gap: 9px;
+      margin-left: 32px;
+      padding: 12px 14px;
+    }
+
+    .spot-content {
+      margin: 0 auto;
+      max-width: 1420px;
+      padding: 0 clamp(22px, 5vw, 72px) 90px;
+    }
+
+    .conditions-deck {
+      background: var(--paper-bright);
       border: 1px solid var(--line);
       border-radius: 18px;
+      box-shadow: var(--shadow-md);
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      margin-top: -28px;
+      overflow: hidden;
+      position: relative;
+      z-index: 4;
+    }
+
+    .condition-cell {
+      border-left: 1px solid var(--line);
+      min-height: 145px;
+      padding: 22px;
+    }
+
+    .condition-cell:first-child {
+      border-left: 0;
+    }
+
+    .condition-cell > span {
+      color: var(--muted);
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .condition-cell strong {
+      display: block;
+      font-family: var(--display-font);
+      font-size: clamp(1.55rem, 2.2vw, 2.25rem);
+      font-weight: 500;
+      letter-spacing: -0.035em;
+      line-height: 1.1;
+      margin: 16px 0 14px;
+    }
+
+    .condition-cell small {
+      color: var(--muted);
+      display: block;
+      font-size: 0.68rem;
+      line-height: 1.4;
+    }
+
+    .condition-cell.action-cell {
+      align-items: center;
+      background: var(--ink);
+      display: flex;
+      justify-content: center;
+    }
+
+    .spot-feed-layout {
+      display: grid;
+      gap: clamp(28px, 4vw, 58px);
+      grid-template-columns: minmax(0, 1fr) 310px;
+      margin-top: 70px;
+    }
+
+    .section-heading-row {
+      align-items: end;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .section-heading-row h2 {
+      font-family: var(--display-font);
+      font-size: clamp(2.7rem, 4vw, 4.4rem);
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 0.95;
+      margin: 0;
+    }
+
+    .section-heading-row span {
+      color: var(--muted);
+      font-size: 0.74rem;
+      font-weight: 800;
+    }
+
+    .community-report-list {
+      display: grid;
+      gap: 20px;
+    }
+
+    .community-report-card {
+      background: var(--paper-bright);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      grid-template-columns: minmax(220px, 0.85fr) minmax(310px, 1.15fr);
+      overflow: hidden;
+    }
+
+    .community-report-media {
+      background-position: center;
+      background-size: cover;
+      min-height: 360px;
+      position: relative;
+    }
+
+    .community-report-media::after {
+      background: linear-gradient(0deg, rgba(4, 25, 31, 0.48), transparent 55%);
+      content: "";
+      inset: 0;
+      position: absolute;
+    }
+
+    .rating-stamp {
+      align-items: center;
+      background: var(--sun);
+      border-radius: 50%;
+      bottom: 16px;
+      color: var(--ink);
+      display: flex;
+      flex-direction: column;
+      font-family: var(--display-font);
+      font-size: 1.45rem;
+      font-weight: 700;
+      height: 72px;
+      justify-content: center;
+      line-height: 0.86;
+      position: absolute;
+      right: 16px;
+      transform: rotate(-7deg);
+      width: 72px;
+      z-index: 2;
+    }
+
+    .rating-stamp small {
+      font-family: var(--ui-font);
+      font-size: 0.5rem;
+      letter-spacing: 0.08em;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    .community-report-body {
+      padding: clamp(22px, 3vw, 34px);
+    }
+
+    .community-author {
+      gap: 10px;
+    }
+
+    .community-author > span:nth-child(2) {
+      display: grid;
+    }
+
+    .community-author strong {
+      font-size: 0.82rem;
+    }
+
+    .community-author small {
+      color: var(--muted);
+      font-size: 0.68rem;
+    }
+
+    .community-report-body > p {
+      font-family: var(--display-font);
+      font-size: clamp(1.45rem, 2.4vw, 2.1rem);
+      letter-spacing: -0.025em;
+      line-height: 1.3;
+      margin: 26px 0;
+    }
+
+    .report-data-line {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(3, 1fr);
+      margin-bottom: 22px;
+    }
+
+    .report-data-line span {
+      border-bottom: 1px solid var(--line);
+      border-top: 1px solid var(--line);
+      padding: 11px 0;
+    }
+
+    .report-data-line small,
+    .report-data-line strong {
+      display: block;
+    }
+
+    .report-data-line small {
+      color: var(--muted);
+      font-size: 0.58rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .report-data-line strong {
+      font-size: 0.78rem;
+      margin-top: 3px;
+    }
+
+    .comments-panel {
+      border-top: 1px solid var(--line);
+      padding-top: 16px;
+    }
+
+    .comments-panel summary {
+      align-items: center;
+      cursor: pointer;
+      display: flex;
+      font-size: 0.78rem;
+      font-weight: 900;
+      justify-content: space-between;
+      list-style: none;
+    }
+
+    .comments-panel summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .comments-panel summary::after {
+      color: var(--ocean);
+      content: "Open thread +";
+      font-size: 0.66rem;
+      text-transform: uppercase;
+    }
+
+    .comments-panel[open] summary::after {
+      content: "Close thread −";
+    }
+
+    .comment-stack {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .comment-row {
+      background: var(--foam);
+      border-radius: 12px;
+      padding: 11px;
+    }
+
+    .comment-row.is-reply {
+      border-left: 3px solid var(--ocean-pale);
+      margin-left: 22px;
+    }
+
+    .comment-author {
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .comment-author .mini-avatar {
+      height: 26px;
+      width: 26px;
+    }
+
+    .comment-author strong {
+      font-size: 0.7rem;
+    }
+
+    .comment-row p {
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.42;
+      margin: 0;
+    }
+
+    .spot-sidebar {
+      display: grid;
+      gap: 16px;
+      align-content: start;
+    }
+
+    .side-card {
+      background: rgba(255, 253, 247, 0.72);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 20px;
+    }
+
+    .side-card .eyebrow {
+      color: var(--muted);
+      margin: 0 0 16px;
+    }
+
+    .side-card h3 {
+      font-family: var(--display-font);
+      font-size: 1.55rem;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      margin: 0 0 8px;
+    }
+
+    .side-card p {
+      color: var(--muted);
+      font-size: 0.78rem;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .activity-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .activity-row {
+      gap: 10px;
+    }
+
+    .activity-row > span:last-child {
+      display: grid;
+    }
+
+    .activity-row strong {
+      font-size: 0.72rem;
+    }
+
+    .activity-row small {
+      color: var(--muted);
+      font-size: 0.64rem;
+    }
+
+    .nearby-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .nearby-item {
+      align-items: center;
+      background: var(--foam);
+      border-radius: 10px;
+      display: grid;
+      gap: 8px;
+      grid-template-columns: 1fr auto;
+      padding: 10px 11px;
+    }
+
+    .nearby-item strong {
+      font-size: 0.74rem;
+    }
+
+    .nearby-item span {
+      color: var(--muted);
+      font-size: 0.66rem;
+    }
+
+    .page-shell {
+      margin: 0 auto;
+      max-width: 1420px;
+      padding: clamp(56px, 8vw, 100px) clamp(22px, 5vw, 72px) 90px;
+    }
+
+    .section-title {
+      display: grid;
+      gap: 26px;
+      grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+      margin-bottom: 50px;
+    }
+
+    .section-title h1,
+    .account-title h1 {
+      font-size: clamp(4.4rem, 8vw, 8.5rem);
+    }
+
+    .section-title > p {
+      align-self: end;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    .community-grid {
+      display: grid;
+      gap: 18px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .dispatch-card {
+      background: var(--paper-bright);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .dispatch-card.large {
+      grid-column: span 7;
+    }
+
+    .dispatch-card.medium {
+      grid-column: span 5;
+    }
+
+    .dispatch-card.small {
+      grid-column: span 4;
+    }
+
+    .dispatch-photo {
+      aspect-ratio: 16 / 10;
+      background-position: center;
+      background-size: cover;
+      position: relative;
+    }
+
+    .dispatch-card.large .dispatch-photo {
+      aspect-ratio: 16 / 8;
+    }
+
+    .dispatch-photo::after {
+      background: linear-gradient(0deg, rgba(4, 25, 31, 0.55), transparent 60%);
+      content: "";
+      inset: 0;
+      position: absolute;
+    }
+
+    .dispatch-location {
+      bottom: 13px;
+      color: white;
+      left: 15px;
+      position: absolute;
+      z-index: 2;
+    }
+
+    .dispatch-location strong,
+    .dispatch-location span {
+      display: block;
+    }
+
+    .dispatch-location strong {
+      font-family: var(--display-font);
+      font-size: 1.35rem;
+    }
+
+    .dispatch-location span {
+      color: rgba(255, 255, 255, 0.68);
+      font-size: 0.66rem;
+      margin-top: 2px;
+    }
+
+    .dispatch-body {
+      padding: 17px;
+    }
+
+    .dispatch-body p {
+      font-family: var(--display-font);
+      font-size: 1.2rem;
+      line-height: 1.38;
+      margin: 0 0 16px;
+    }
+
+    .dispatch-meta {
+      align-items: center;
+      color: var(--muted);
+      display: flex;
+      font-size: 0.68rem;
+      font-weight: 700;
+      gap: 12px;
+    }
+
+    .dispatch-meta span:last-child {
+      margin-left: auto;
+    }
+
+    .community-cta {
+      align-items: center;
+      background:
+        radial-gradient(circle at 90% 10%, rgba(18, 164, 170, 0.26), transparent 20rem),
+        var(--ink);
+      border-radius: 20px;
+      color: white;
+      display: flex;
+      gap: 30px;
+      grid-column: span 12;
+      justify-content: space-between;
+      margin-top: 12px;
+      padding: clamp(28px, 4vw, 50px);
+    }
+
+    .community-cta h2 {
+      font-family: var(--display-font);
+      font-size: clamp(2.4rem, 4vw, 4.2rem);
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 1;
+      margin: 0 0 10px;
+    }
+
+    .community-cta p {
+      color: rgba(255, 255, 255, 0.64);
+      margin: 0;
+    }
+
+    .account-title {
+      margin-bottom: 44px;
+    }
+
+    .account-dashboard {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 330px minmax(0, 1fr);
+    }
+
+    .profile-card {
+      background:
+        radial-gradient(circle at 100% 0%, rgba(18, 164, 170, 0.3), transparent 16rem),
+        var(--ink);
+      border-radius: 20px;
+      color: white;
+      padding: 28px;
+    }
+
+    .profile-card .drawer-avatar {
+      height: 72px;
+      margin-bottom: 22px;
+      width: 72px;
+    }
+
+    .profile-card h2 {
+      font-family: var(--display-font);
+      font-size: 2.25rem;
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      margin: 0 0 4px;
+    }
+
+    .profile-card > span {
+      color: rgba(255, 255, 255, 0.54);
+      font-size: 0.74rem;
+    }
+
+    .profile-stats {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.13);
+      border-top: 1px solid rgba(255, 255, 255, 0.13);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      margin: 24px 0;
+      padding: 18px 0;
+    }
+
+    .profile-stats span {
+      color: rgba(255, 255, 255, 0.54);
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .profile-stats strong {
+      display: block;
+      font-family: var(--display-font);
+      font-size: 2rem;
+      font-weight: 500;
+      margin-top: 3px;
+    }
+
+    .badge-progress {
+      background: rgba(255, 255, 255, 0.07);
+      border-radius: 14px;
       padding: 14px;
     }
 
-    .metric small {
-      color: var(--mist);
+    .badge-progress span {
+      color: rgba(255, 255, 255, 0.58);
       display: block;
-      font-size: 0.7rem;
+      font-size: 0.66rem;
+      font-weight: 800;
       margin-bottom: 8px;
       text-transform: uppercase;
     }
 
-    .metric strong {
-      color: var(--foam);
-      font-size: 1.2rem;
+    .badge-progress strong {
+      display: block;
+      font-size: 0.86rem;
+      margin-bottom: 10px;
     }
 
-    .section {
-      margin-top: 28px;
+    .progress-track {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      height: 6px;
+      overflow: hidden;
     }
 
-    .section h2 {
-      font-size: clamp(3rem, 7vw, 7rem);
-      margin-bottom: 18px;
+    .progress-track::before {
+      background: var(--sun);
+      border-radius: inherit;
+      content: "";
+      display: block;
+      height: 100%;
+      width: 62%;
     }
 
-    .spot-layout {
+    .account-main {
       display: grid;
-      gap: 22px;
-      grid-template-columns: 0.75fr 1.25fr;
+      gap: 20px;
     }
 
-    .spot-photo {
-      background:
-        linear-gradient(rgba(6, 29, 32, 0.2), rgba(6, 29, 32, 0.82)),
-        url("/spot-images/little-point-rockpile.png") center / cover;
+    .account-panel {
+      background: var(--paper-bright);
       border: 1px solid var(--line);
-      border-radius: 34px;
-      min-height: 520px;
-    }
-
-    .report-card {
-      border-radius: 34px;
+      border-radius: 18px;
       padding: 24px;
     }
 
-    .report-head {
-      align-items: start;
+    .account-panel-head {
+      align-items: center;
       display: flex;
-      gap: 18px;
       justify-content: space-between;
       margin-bottom: 18px;
     }
 
-    .report-card h3 {
-      font-size: clamp(2.6rem, 5vw, 5rem);
-    }
-
-    .tag {
-      border: 1px solid rgba(184, 255, 91, 0.4);
-      border-radius: 999px;
-      color: var(--acid);
-      font-size: 0.72rem;
-      font-weight: 800;
-      padding: 8px 10px;
-      text-transform: uppercase;
-      white-space: nowrap;
-    }
-
-    .conditions {
-      display: grid;
-      gap: 12px;
-      grid-template-columns: repeat(3, 1fr);
-      margin: 22px 0;
-    }
-
-    .conditions .metric {
-      min-height: 120px;
-    }
-
-    .log {
-      background: var(--paper);
-      border-radius: 24px;
-      color: var(--kelp);
-      overflow: hidden;
-    }
-
-    .log video,
-    .log .video {
-      align-items: center;
-      background:
-        radial-gradient(circle at 24% 34%, rgba(255,255,255,.25), transparent 10rem),
-        linear-gradient(140deg, #345a5c, #081d21);
-      color: rgba(245, 236, 216, 0.75);
-      display: flex;
-      font-weight: 800;
-      height: 240px;
-      justify-content: center;
-    }
-
-    .log-body {
-      padding: 22px;
-    }
-
-    .log-body p {
-      font-family: "Fraunces", Georgia, serif;
-      font-size: 1.55rem;
-      font-weight: 700;
+    .account-panel-head h2 {
+      font-family: var(--display-font);
+      font-size: 2rem;
+      font-weight: 500;
       letter-spacing: -0.04em;
-      line-height: 1.18;
-      margin: 0 0 18px;
+      margin: 0;
     }
 
-    .chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .chip {
-      background: rgba(6, 29, 32, 0.08);
-      border-radius: 999px;
-      font-size: 0.74rem;
-      font-weight: 800;
-      padding: 8px 10px;
-      text-transform: uppercase;
-    }
-
-    details.comments {
-      border-top: 1px dashed rgba(6, 29, 32, 0.22);
-      margin-top: 18px;
-      padding-top: 14px;
-    }
-
-    details.comments summary {
-      cursor: pointer;
+    .account-panel-head button {
+      color: var(--ocean);
+      font-size: 0.72rem;
       font-weight: 900;
-      list-style: none;
     }
 
-    .comment {
-      background: rgba(6, 29, 32, 0.06);
-      border-radius: 16px;
-      margin-top: 10px;
-      padding: 12px;
-    }
-
-    .comment.reply {
-      margin-left: 22px;
-    }
-
-    .comment small {
-      color: rgba(6, 29, 32, 0.55);
-      display: block;
-      font-weight: 800;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-    }
-
-    .account-strip {
+    .history-preview-list {
       display: grid;
-      gap: 16px;
-      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
     }
 
-    .account-card {
-      border-radius: 28px;
-      min-height: 180px;
-      padding: 22px;
+    .history-preview-item {
+      align-items: center;
+      background: var(--foam);
+      border-radius: 13px;
+      display: grid;
+      gap: 14px;
+      grid-template-columns: 72px minmax(0, 1fr) repeat(3, auto);
+      padding: 11px;
     }
 
-    .account-card b {
+    .history-thumb {
+      aspect-ratio: 1;
+      background-position: center;
+      background-size: cover;
+      border-radius: 10px;
+    }
+
+    .history-copy strong,
+    .history-copy span,
+    .history-stat strong,
+    .history-stat span {
       display: block;
-      font-size: 1.9rem;
-      letter-spacing: -0.06em;
-      margin-top: 22px;
     }
 
-    .button {
-      background: var(--signal);
-      border: 0;
-      border-radius: 999px;
-      box-shadow: 0 18px 36px rgba(255, 106, 42, 0.24);
-      color: #170904;
-      display: inline-flex;
+    .history-copy strong {
+      font-size: 0.86rem;
+    }
+
+    .history-copy span {
+      color: var(--muted);
+      font-size: 0.7rem;
+      margin-top: 3px;
+    }
+
+    .history-stat {
+      min-width: 78px;
+    }
+
+    .history-stat span {
+      color: var(--muted);
+      font-size: 0.56rem;
       font-weight: 900;
-      margin-top: 24px;
-      padding: 14px 18px;
-      text-decoration: none;
+      letter-spacing: 0.07em;
       text-transform: uppercase;
     }
 
-    .reveal {
-      animation: rise 760ms cubic-bezier(.2, .8, .2, 1) both;
+    .history-stat strong {
+      font-size: 0.78rem;
+      margin-top: 2px;
     }
 
-    .d2 { animation-delay: 100ms; }
-    .d3 { animation-delay: 200ms; }
-    .d4 { animation-delay: 300ms; }
+    .settings-preview {
+      display: grid;
+      gap: 14px;
+      grid-template-columns: repeat(2, 1fr);
+    }
 
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(22px); }
+    .setting-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .setting-card h3 {
+      font-family: var(--display-font);
+      font-size: 1.45rem;
+      font-weight: 500;
+      letter-spacing: -0.03em;
+      margin: 0 0 7px;
+    }
+
+    .setting-card p {
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.45;
+      margin: 0 0 14px;
+    }
+
+    .setting-card button {
+      border: 0;
+      border-bottom: 1px solid currentColor;
+      color: var(--ocean);
+      cursor: pointer;
+      font-size: 0.72rem;
+      font-weight: 900;
+      padding: 0 0 2px;
+    }
+
+    .composer-backdrop {
+      align-items: center;
+      background: rgba(2, 18, 23, 0.68);
+      display: flex;
+      inset: 0;
+      justify-content: center;
+      opacity: 0;
+      padding: 22px;
+      pointer-events: none;
+      position: fixed;
+      transition: opacity 200ms ease;
+      z-index: 300;
+    }
+
+    .composer-backdrop.is-open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .composer {
+      background: var(--paper-bright);
+      border-radius: 22px;
+      box-shadow: var(--shadow-deep);
+      max-height: calc(100vh - 44px);
+      max-width: 720px;
+      overflow-y: auto;
+      padding: clamp(24px, 4vw, 38px);
+      transform: translateY(18px) scale(0.98);
+      transition: transform 220ms ease;
+      width: 100%;
+    }
+
+    .composer-backdrop.is-open .composer {
+      transform: translateY(0) scale(1);
+    }
+
+    .composer-head {
+      align-items: start;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 26px;
+    }
+
+    .composer-head .eyebrow {
+      color: var(--ocean);
+      margin: 0 0 8px;
+    }
+
+    .composer-head h2 {
+      font-family: var(--display-font);
+      font-size: clamp(2.5rem, 5vw, 4.25rem);
+      font-weight: 500;
+      letter-spacing: -0.05em;
+      line-height: 0.95;
+      margin: 0;
+    }
+
+    .composer-grid {
+      display: grid;
+      gap: 13px;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .preview-field {
+      display: grid;
+      gap: 7px;
+    }
+
+    .preview-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .preview-field span {
+      font-size: 0.7rem;
+      font-weight: 900;
+    }
+
+    .preview-field input,
+    .preview-field textarea {
+      background: var(--foam);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      min-height: 48px;
+      outline: 0;
+      padding: 12px;
+      width: 100%;
+    }
+
+    .preview-field textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+
+    .composer-note {
+      background: rgba(240, 198, 90, 0.18);
+      border: 1px solid rgba(240, 198, 90, 0.42);
+      border-radius: 12px;
+      color: #765b15;
+      font-size: 0.74rem;
+      line-height: 1.5;
+      margin: 16px 0;
+      padding: 11px 12px;
+    }
+
+    .composer-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .toast {
+      background: var(--ink);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      bottom: 22px;
+      box-shadow: var(--shadow-deep);
+      color: white;
+      font-size: 0.76rem;
+      font-weight: 800;
+      left: 50%;
+      opacity: 0;
+      padding: 12px 16px;
+      pointer-events: none;
+      position: fixed;
+      transform: translate(-50%, 16px);
+      transition: opacity 180ms ease, transform 180ms ease;
+      z-index: 400;
+    }
+
+    .toast.is-visible {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    @keyframes view-enter {
+      from { opacity: 0; transform: translateY(12px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.18); }
+    @media (max-width: 1120px) {
+      .home-hero {
+        grid-template-columns: minmax(0, 1fr) minmax(330px, 0.62fr);
+      }
+
+      .map-workspace {
+        grid-template-columns: minmax(0, 1fr) 360px;
+      }
+
+      .conditions-deck {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .condition-cell:nth-child(3) {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+      }
+
+      .condition-cell:nth-child(4) {
+        border-top: 1px solid var(--line);
+      }
+
+      .community-report-card {
+        grid-template-columns: 0.78fr 1.22fr;
+      }
+
+      .history-preview-item {
+        grid-template-columns: 64px minmax(0, 1fr) repeat(2, auto);
+      }
+
+      .history-stat:last-child {
+        display: none;
+      }
     }
 
-    @media (max-width: 980px) {
-      .hero,
-      .spot-layout,
-      .account-strip,
-      .conditions {
+    @media (max-width: 900px) {
+      .home-hero {
+        align-content: center;
+        gap: 50px;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        padding-bottom: 54px;
+      }
+
+      .hero-copy {
+        max-width: 700px;
+      }
+
+      .hero-report {
+        justify-self: start;
+        max-width: 520px;
+      }
+
+      .coast-pulse {
         grid-template-columns: 1fr;
       }
 
-      .nav {
+      .coast-pulse > span {
+        display: none;
+      }
+
+      .manifesto,
+      .section-title {
+        grid-template-columns: 1fr;
+      }
+
+      .manifesto-copy {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding-left: 0;
+        padding-top: 28px;
+      }
+
+      .feature-row {
+        grid-template-columns: 1fr;
+      }
+
+      .feature,
+      .feature:first-child,
+      .feature:last-child {
+        border-radius: 0;
+        margin: -1px 0 0;
+        min-height: 210px;
+      }
+
+      .feature:first-child {
+        border-radius: 18px 18px 0 0;
+        margin-top: 0;
+      }
+
+      .feature:last-child {
+        border-radius: 0 0 18px 18px;
+      }
+
+      .feature h3 {
+        margin-top: 30px;
+      }
+
+      .map-workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .map-canvas {
+        min-height: 66vh;
+      }
+
+      .map-feed {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        max-height: none;
+      }
+
+      .feed-list {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .spot-cover-inner {
         align-items: flex-start;
-        gap: 12px;
+        flex-direction: column;
+        justify-content: flex-end;
+      }
+
+      .spot-freshness {
+        margin: 24px 0 0;
+      }
+
+      .spot-feed-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .spot-sidebar {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .community-report-card {
+        grid-template-columns: 1fr;
+      }
+
+      .community-report-media {
+        min-height: 320px;
+      }
+
+      .dispatch-card.large,
+      .dispatch-card.medium,
+      .dispatch-card.small {
+        grid-column: span 6;
+      }
+
+      .account-dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .topbar {
+        height: 68px;
+        padding-inline: 13px;
+      }
+
+      .preview-label,
+      .live-status,
+      .topbar-right .primary-button span {
+        display: none;
+      }
+
+      .topbar-right {
+        gap: 8px;
+      }
+
+      .topbar-right .primary-button {
+        min-height: 42px;
+        padding-inline: 14px;
+      }
+
+      .home-hero {
+        gap: 38px;
+        min-height: auto;
+        padding: 120px 18px 34px;
+      }
+
+      .home-hero::before {
+        background:
+          linear-gradient(0deg, rgba(3, 22, 28, 0.98) 0%, rgba(3, 22, 28, 0.72) 68%, rgba(3, 22, 28, 0.36) 100%),
+          url("/spot-images/windansea.png") center / cover;
+      }
+
+      .hero-copy h1 {
+        font-size: clamp(4rem, 20vw, 5.9rem);
+      }
+
+      .hero-copy .hero-lead {
+        font-size: 1rem;
+      }
+
+      .hero-actions {
+        align-items: stretch;
         flex-direction: column;
       }
 
-      .map-stage {
-        min-height: 560px;
+      .hero-actions button {
+        width: 100%;
+      }
+
+      .floating-report {
+        transform: none;
+      }
+
+      .quick-metrics {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .quick-metric:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .coast-pulse {
+        margin-top: 8px;
+      }
+
+      .pulse-track {
+        display: flex;
+        overflow-x: auto;
+      }
+
+      .pulse-item {
+        flex: 0 0 160px;
+      }
+
+      .home-intro,
+      .page-shell {
+        padding-inline: 18px;
+      }
+
+      .manifesto {
+        margin-bottom: 52px;
+      }
+
+      .manifesto h2 {
+        font-size: 3.35rem;
+      }
+
+      .view-map,
+      .view-spot,
+      .view-community,
+      .view-account {
+        padding-top: 68px;
+      }
+
+      .map-canvas {
+        min-height: 640px;
+      }
+
+      .map-toolbar {
+        left: 12px;
+        right: 12px;
+        top: 12px;
+      }
+
+      .map-live-pill {
+        display: none;
+      }
+
+      .map-brief {
+        bottom: 12px;
+        left: 12px;
+        width: calc(100% - 72px);
+      }
+
+      .map-zoom {
+        bottom: 12px;
+        right: 12px;
+      }
+
+      .map-condition-row {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .map-condition-row span:last-child {
+        display: none;
+      }
+
+      .feed-list {
+        grid-template-columns: 1fr;
+      }
+
+      .spot-cover {
+        min-height: 660px;
+      }
+
+      .spot-cover-inner,
+      .spot-content {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .spot-identity h1 {
+        font-size: clamp(3.7rem, 18vw, 4.8rem);
+      }
+
+      .conditions-deck {
+        grid-template-columns: 1fr;
+      }
+
+      .condition-cell,
+      .condition-cell:nth-child(2),
+      .condition-cell:nth-child(3),
+      .condition-cell:nth-child(4) {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        min-height: auto;
+      }
+
+      .condition-cell:first-child {
+        border-top: 0;
+      }
+
+      .condition-cell.action-cell {
+        padding-block: 18px;
+      }
+
+      .community-report-card {
+        display: block;
+      }
+
+      .community-report-media {
+        min-height: 270px;
+      }
+
+      .report-data-line {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .report-data-line span:last-child {
+        grid-column: 1 / -1;
+      }
+
+      .spot-sidebar,
+      .settings-preview {
+        grid-template-columns: 1fr;
+      }
+
+      .section-title h1,
+      .account-title h1 {
+        font-size: clamp(4rem, 20vw, 6rem);
+      }
+
+      .dispatch-card.large,
+      .dispatch-card.medium,
+      .dispatch-card.small {
+        grid-column: span 12;
+      }
+
+      .community-cta {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .history-preview-item {
+        align-items: start;
+        grid-template-columns: 60px minmax(0, 1fr);
+      }
+
+      .history-stat {
+        display: none;
+      }
+
+      .composer-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .preview-field.full {
+        grid-column: auto;
+      }
+
+      .composer-actions {
+        flex-direction: column-reverse;
+      }
+
+      .composer-actions button {
+        width: 100%;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
+  <script defer src="/design-preview.js"></script>
 </head>
-<body>
-  <main class="shell">
-    <nav class="nav reveal">
-      <a class="brand" href="#">
-        <span class="brand-mark"></span>
-        <strong>SurfSD</strong>
-      </a>
-      <div class="nav-links">
-        <a class="active" href="#">Map</a>
-        <a href="#">Breaks</a>
-        <a href="#">Reports</a>
-        <a href="#">Account</a>
-      </div>
+<body data-design-preview>
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="icon-button" type="button" aria-label="Open menu" data-menu-open>
+        <span class="menu-lines"><span></span></span>
+      </button>
+      <span class="preview-label">Design Preview</span>
+    </div>
+    <button class="brand-button" type="button" data-view-target="home" aria-label="Go to preview home">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <span class="brand-word">SurfSD</span>
+    </button>
+    <div class="topbar-right">
+      <span class="live-status"><span class="live-dot"></span>8 fresh reports</span>
+      <button class="primary-button compact" type="button" data-composer-open><span>Post Report</span><b>＋</b></button>
+      <button class="avatar-button" type="button" data-view-target="account" aria-label="Open account preview">AD</button>
+    </div>
+  </header>
+
+  <button class="drawer-scrim" type="button" aria-label="Close menu" data-menu-close></button>
+  <aside class="side-drawer" aria-label="Main menu" aria-hidden="true" data-drawer>
+    <div class="drawer-head">
+      <button class="brand-button" type="button" data-view-target="home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="brand-word">SurfSD</span>
+      </button>
+      <button class="icon-button" type="button" aria-label="Close menu" data-menu-close><span class="close-icon"></span></button>
+    </div>
+
+    <p class="drawer-kicker">Explore SurfSD</p>
+    <nav class="drawer-nav" aria-label="Preview pages">
+      <button class="is-active" type="button" data-view-target="home"><span class="nav-icon">⌂</span><span>Home</span></button>
+      <button type="button" data-view-target="map"><span class="nav-icon">⌖</span><span>Live Map</span></button>
+      <button type="button" data-view-target="spot"><span class="nav-icon">≈</span><span>Spot Page</span></button>
+      <button type="button" data-view-target="community"><span class="nav-icon">◌</span><span>Feed</span></button>
+      <button type="button" data-view-target="account"><span class="nav-icon">◎</span><span>Your Account</span></button>
     </nav>
 
-    <section class="hero">
-      <div class="intro reveal d2">
-        <p class="eyebrow">San Diego field terminal</p>
-        <h1>Surf intel, not surf noise.</h1>
-        <p>A rougher, moodier SurfSD direction: more like a field notebook crossed with a coastal radar screen. Less toy-like, more local, more alive.</p>
-        <div class="pills">
-          <span class="pill">24 breaks</span>
-          <span class="pill">Live reports</span>
-          <span class="pill">Community verified</span>
+    <div class="drawer-spacer"></div>
+    <div class="preview-safe">
+      <strong>Preview mode</strong>
+      <p>This is a visual prototype. Clicking around does not post, delete, or change anything in the real SurfSD app.</p>
+    </div>
+    <div class="drawer-profile">
+      <span class="drawer-avatar">AD</span>
+      <span><strong>AdamDev</strong><span>18 reports · Local</span></span>
+      <button class="plain-button" type="button" data-view-target="account">View</button>
+    </div>
+  </aside>
+
+  <main>
+    <section class="view view-home is-active" data-view="home">
+      <div class="home-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Community surf reports · San Diego</p>
+          <h1>The coast is talking.</h1>
+          <p class="hero-lead">Forecasts tell you what might happen. SurfSD shows you what is happening—through quick reports, honest ratings, and conversations from surfers already there.</p>
+          <div class="hero-actions">
+            <button class="primary-button" type="button" data-view-target="map">Open the live map <span>→</span></button>
+            <button class="ghost-button" type="button" data-view-target="community">See today’s reports</button>
+          </div>
+          <div class="hero-trust">
+            <span class="trust-faces"><span class="trust-face">J</span><span class="trust-face">M</span><span class="trust-face">A</span></span>
+            <span>8 surfers posted along the coast today</span>
+          </div>
         </div>
-        <a class="button" href="#">Drop a report</a>
+
+        <div class="hero-report">
+          <article class="floating-report">
+            <div class="floating-report-media">
+              <span class="fresh-flag">7 min ago</span>
+              <span class="floating-location"><strong>Little Point / Rockpile</strong><span>La Jolla · Intermediate–Advanced</span></span>
+            </div>
+            <div class="floating-report-body">
+              <div class="report-user-row">
+                <span class="mini-avatar">AD</span>
+                <span><strong>AdamDev</strong><span>Local contributor</span></span>
+                <span class="report-badge">10 Reports</span>
+              </div>
+              <p>“Clean little runners on the right swell. Sets are slow, but the good ones are worth the wait.”</p>
+              <div class="quick-metrics">
+                <span class="quick-metric"><span>Wave height</span><strong>3–4 ft</strong></span>
+                <span class="quick-metric"><span>Rating</span><strong>8/10 · Good</strong></span>
+                <span class="quick-metric"><span>Tide</span><strong>4.1 ft rising</strong></span>
+              </div>
+              <div class="report-engagement"><span>◌ 4 comments</span><span>↗ 2 replies</span><span>Edited</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="coast-pulse">
+          <span>Fresh along the coast</span>
+          <div class="pulse-track">
+            <span class="pulse-item"><strong>Oceanside Harbor</strong><span>3–4 ft · 12 min ago</span></span>
+            <span class="pulse-item"><strong>Swami’s</strong><span>2–3 ft · 18 min ago</span></span>
+            <span class="pulse-item"><strong>Windansea</strong><span>4–5 ft · 24 min ago</span></span>
+            <span class="pulse-item"><strong>Ocean Beach</strong><span>3 ft · 41 min ago</span></span>
+          </div>
+        </div>
       </div>
 
-      <div class="map-stage reveal d3">
-        <span class="coastline"></span>
-        <span class="marker hot m1"></span>
-        <span class="marker m2"></span>
-        <span class="marker hot m3"></span>
-        <span class="marker m4"></span>
-
-        <aside class="live-panel">
-          <div class="panel-top">
-            <span>Live San Diego Report</span>
-            <span>Jun 28 · 4:21 PM</span>
+      <section class="home-intro">
+        <div class="manifesto">
+          <div>
+            <p class="eyebrow">The idea stays simple</p>
+            <h2>A field guide written by the lineup.</h2>
           </div>
-          <b>3.9 ft S swell @ 17s</b>
-          <div class="metric-grid">
-            <div class="metric"><small>Tide</small><strong>5.8 ft steady</strong></div>
-            <div class="metric"><small>Weather</small><strong>68 F · NW</strong></div>
+          <div class="manifesto-copy">
+            <p><strong>SurfSD keeps the map at the center.</strong> Open a break, see what locals are posting, ask a question, and add what you saw. No endless influencer feed. No mystery score. Just useful surf information with a real person behind it.</p>
+          </div>
+        </div>
+        <div class="feature-row">
+          <article class="feature"><span class="feature-number">01</span><h3>Map first</h3><p>Fresh reports light up directly on the coastline, so you can scan San Diego before choosing a break.</p></article>
+          <article class="feature"><span class="feature-number">02</span><h3>Human context</h3><p>A clip, rating, short description, and comment thread tell the story a forecast alone cannot.</p></article>
+          <article class="feature"><span class="feature-number">03</span><h3>Fast to share</h3><p>Posting stays intentionally simple. Surfers can help the community without turning it into a full-time job.</p></article>
+        </div>
+      </section>
+    </section>
+
+    <section class="view view-map" data-view="map" hidden>
+      <div class="map-workspace">
+        <div class="map-canvas">
+          <div class="map-toolbar">
+            <label class="map-search"><span class="search-icon" aria-hidden="true"></span><input type="search" placeholder="Search Surf Spots"></label>
+            <span class="map-live-pill"><span class="live-dot"></span>Live · Jul 10, 2:28 PM</span>
+          </div>
+
+          <button class="map-marker marker-oceanside is-fresh" type="button" aria-label="Oceanside Harbor" data-map-spot="oceanside"></button>
+          <button class="map-marker marker-swamis" type="button" aria-label="Swami's" data-map-spot="swamis"></button>
+          <button class="map-marker marker-delmar is-fresh" type="button" aria-label="Del Mar" data-map-spot="delmar"></button>
+          <button class="map-marker marker-blacks" type="button" aria-label="Black's Beach" data-map-spot="blacks"></button>
+          <button class="map-marker marker-windansea is-fresh is-active" type="button" aria-label="Windansea" data-map-spot="windansea"></button>
+          <button class="map-marker marker-tourmaline" type="button" aria-label="Tourmaline" data-map-spot="tourmaline"></button>
+          <button class="map-marker marker-ob is-fresh" type="button" aria-label="Ocean Beach Jetty" data-map-spot="ob"></button>
+          <button class="map-marker marker-ib" type="button" aria-label="Imperial Beach Pier" data-map-spot="ib"></button>
+
+          <article class="map-brief">
+            <div class="map-brief-photo" data-map-photo><span data-map-difficulty>Advanced · Reef break</span></div>
+            <div class="map-brief-body">
+              <div class="map-brief-title"><h2 data-map-name>Windansea</h2><button type="button" data-view-target="spot">View Spot →</button></div>
+              <p data-map-description>Powerful peaks, hollow sections, and one of San Diego’s most recognizable shorelines.</p>
+              <div class="map-condition-row">
+                <span><small>Swell</small><strong data-map-swell>3.9 ft SW @ 17s</strong></span>
+                <span><small>Tide</small><strong data-map-tide>4.1 ft rising</strong></span>
+                <span><small>Fresh reports</small><strong data-map-reports>3 today</strong></span>
+              </div>
+            </div>
+          </article>
+
+          <div class="map-zoom" aria-label="Map controls"><button type="button" aria-label="Reset map">↺</button><button type="button" aria-label="Zoom in">+</button><button type="button" aria-label="Zoom out">−</button></div>
+        </div>
+
+        <aside class="map-feed">
+          <div class="feed-heading"><h2>Latest reports</h2><span>Updated now</span></div>
+          <div class="filter-row" aria-label="Report filters">
+            <button class="filter-button is-active" type="button">All Coast</button>
+            <button class="filter-button" type="button">North</button>
+            <button class="filter-button" type="button">Central</button>
+            <button class="filter-button" type="button">South</button>
+          </div>
+          <div class="feed-list">
+            <button class="feed-card" type="button" data-view-target="spot">
+              <span class="feed-card-photo photo-windansea"><span class="fresh-flag">7 min ago</span></span>
+              <span class="feed-card-content"><span class="feed-card-head"><strong>Windansea</strong><span>by AdamDev</span></span><span>Clean early with shoulder-high sets and light texture starting to show.</span><span class="feed-metrics"><span>4–5 ft</span><span>8/10 Good</span><span>6 comments</span></span></span>
+            </button>
+            <button class="feed-card" type="button" data-view-target="spot">
+              <span class="feed-card-photo photo-blacks"><span class="fresh-flag">18 min ago</span></span>
+              <span class="feed-card-content"><span class="feed-card-head"><strong>Black’s Beach</strong><span>by CanyonWatch</span></span><span>Inconsistent, but bigger sets have real push and clean faces.</span><span class="feed-metrics"><span>5–6 ft</span><span>7/10 Decent</span><span>3 comments</span></span></span>
+            </button>
+            <button class="feed-card" type="button" data-view-target="spot">
+              <span class="feed-card-photo photo-swamis"></span>
+              <span class="feed-card-content"><span class="feed-card-head"><strong>Swami’s</strong><span>by RailGrab</span></span><span>Long waits and a crowd, but the rights are connecting through the inside.</span><span class="feed-metrics"><span>2–3 ft</span><span>6/10 Decent</span><span>8 comments</span></span></span>
+            </button>
+            <button class="feed-card" type="button" data-view-target="spot">
+              <span class="feed-card-photo photo-oceanside"></span>
+              <span class="feed-card-content"><span class="feed-card-head"><strong>Oceanside Harbor</strong><span>by JettyLocal</span></span><span>Peaky near the rocks with a light offshore wind holding up the faces.</span><span class="feed-metrics"><span>3–4 ft</span><span>8/10 Good</span><span>2 comments</span></span></span>
+            </button>
           </div>
         </aside>
       </div>
     </section>
 
-    <section class="section spot-layout">
-      <div class="spot-photo reveal"></div>
-      <div class="report-card reveal d2">
-        <div class="report-head">
-          <div>
-            <p class="eyebrow">Intermediate · reef break</p>
-            <h3>Little Point / Rockpile</h3>
+    <section class="view view-spot" data-view="spot" hidden>
+      <div class="spot-cover">
+        <div class="spot-cover-inner">
+          <div class="spot-identity">
+            <p class="eyebrow">La Jolla · Advanced · Reef break</p>
+            <h1>Windansea</h1>
+            <p>Powerful peaks, hollow sections, and a shallow reef. Windansea rewards experienced surfers when the swell lines up—and punishes bad timing.</p>
           </div>
-          <span class="tag">New Report Today</span>
+          <span class="spot-freshness"><span class="live-dot"></span>3 reports today</span>
         </div>
+      </div>
 
-        <div class="conditions">
-          <div class="metric"><small>Swell</small><strong>4 ft SW</strong></div>
-          <div class="metric"><small>Rating</small><strong>7/10 · Decent</strong></div>
-          <div class="metric"><small>Updated</small><strong>4 min ago</strong></div>
-        </div>
+      <div class="spot-content">
+        <section class="conditions-deck" aria-label="Live Windansea conditions">
+          <div class="condition-cell"><span>Swell</span><strong>3.9 ft SW @ 17s</strong><small>Updated 2:28 PM · NOAA NDBC</small></div>
+          <div class="condition-cell"><span>Tide</span><strong>4.1 ft rising</strong><small>Updated 2:28 PM · NOAA Tides & Currents</small></div>
+          <div class="condition-cell"><span>Weather</span><strong>69°F · 10 mph S</strong><small>Updated 2:28 PM · National Weather Service</small></div>
+          <div class="condition-cell action-cell"><button class="primary-button" type="button" data-composer-open>＋ Post a report</button></div>
+        </section>
 
-        <article class="log">
-          <div class="video">8 second clip preview</div>
-          <div class="log-body">
-            <p>3–4 ft and clean. Sets are inconsistent but the good ones are lining up near the rock.</p>
-            <div class="chips">
-              <span class="chip">AdamDev</span>
-              <span class="chip">10 Reports</span>
-              <span class="chip">Edited</span>
+        <div class="spot-feed-layout">
+          <section>
+            <div class="section-heading-row"><h2>From the beach</h2><span>Newest first</span></div>
+            <div class="community-report-list">
+              <article class="community-report-card">
+                <div class="community-report-media photo-windansea"><span class="fresh-flag">7 min ago</span><span class="rating-stamp">8/10<small>Good</small></span></div>
+                <div class="community-report-body">
+                  <div class="community-author"><span class="mini-avatar">AD</span><span><strong>AdamDev</strong><small>Local contributor · 18 reports</small></span><span class="report-badge">10 Reports</span></div>
+                  <p>“Clean early with shoulder-high sets. The right is lining up better than the left, but waits are getting long.”</p>
+                  <div class="report-data-line"><span><small>Wave height</small><strong>4–5 ft</strong></span><span><small>Posted</small><strong>7 min ago</strong></span><span><small>Status</small><strong>Edited</strong></span></div>
+                  <details class="comments-panel"><summary>6 comments · 2 replies</summary><div class="comment-stack"><div class="comment-row"><div class="comment-author"><span class="mini-avatar">JC</span><strong>JettyCheck</strong></div><p>Did the wind stay light after the tide started filling in?</p></div><div class="comment-row is-reply"><div class="comment-author"><span class="mini-avatar">AD</span><strong>AdamDev replied</strong></div><p>Still light when I left. Texture was starting, but nothing too bad yet.</p></div></div></details>
+                </div>
+              </article>
+
+              <article class="community-report-card">
+                <div class="community-report-media photo-rockpile"><span class="rating-stamp">7/10<small>Decent</small></span></div>
+                <div class="community-report-body">
+                  <div class="community-author"><span class="mini-avatar">NR</span><span><strong>NorthReef</strong><small>100 Report badge · 132 reports</small></span><span class="report-badge">100 Reports</span></div>
+                  <p>“More crowded now. Still fun on the sets, but the inside is getting a little wonky with the higher tide.”</p>
+                  <div class="report-data-line"><span><small>Wave height</small><strong>3–4 ft</strong></span><span><small>Posted</small><strong>54 min ago</strong></span><span><small>Status</small><strong>Original</strong></span></div>
+                  <details class="comments-panel"><summary>3 comments</summary><div class="comment-stack"><div class="comment-row"><div class="comment-author"><span class="mini-avatar">PB</span><strong>PointBreak</strong></div><p>Appreciate the update. Saving me a drive south.</p></div></div></details>
+                </div>
+              </article>
             </div>
+          </section>
 
-            <details class="comments">
-              <summary>3 Comments</summary>
-              <div class="comment">
-                <small>LocalCheck</small>
-                Tide push helped for about twenty minutes.
-              </div>
-              <div class="comment reply">
-                <small>AdamDev replied</small>
-                Yeah, it got flatter right after.
-              </div>
-              <div class="comment">
-                <small>NorthCounty</small>
-                This layout keeps the thread tucked away until someone wants it.
-              </div>
-            </details>
-          </div>
-        </article>
+          <aside class="spot-sidebar">
+            <section class="side-card"><p class="eyebrow">Community pulse</p><h3>Who is checking in</h3><p>Recent activity near Windansea from surfers who have posted or commented today.</p><div class="activity-list"><div class="activity-row"><span class="mini-avatar">AD</span><span><strong>AdamDev posted</strong><small>7 minutes ago</small></span></div><div class="activity-row"><span class="mini-avatar">JC</span><span><strong>JettyCheck commented</strong><small>4 minutes ago</small></span></div><div class="activity-row"><span class="mini-avatar">NR</span><span><strong>NorthReef posted</strong><small>54 minutes ago</small></span></div></div></section>
+            <section class="side-card"><p class="eyebrow">Nearby breaks</p><h3>Keep scanning</h3><div class="nearby-list"><span class="nearby-item"><strong>Big Rock</strong><span>1.2 mi</span></span><span class="nearby-item"><strong>Little Point</strong><span>1.8 mi</span></span><span class="nearby-item"><strong>Tourmaline</strong><span>3.6 mi</span></span></div></section>
+          </aside>
+        </div>
       </div>
     </section>
 
-    <section class="section">
-      <h2 class="reveal">Account cockpit</h2>
-      <div class="account-strip">
-        <div class="account-card reveal d2">
-          <span class="mono-label">Username</span>
-          <b>WaveRider</b>
+    <section class="view view-community" data-view="community" hidden>
+      <div class="page-shell">
+        <div class="section-title">
+          <div><p class="eyebrow">Today on SurfSD</p><h1>Coastline dispatches.</h1></div>
+          <p>A simple feed of firsthand reports—not an influencer timeline. Every post is tied to a real spot on the map and made to help someone decide where to paddle out.</p>
         </div>
-        <div class="account-card reveal d3">
-          <span class="mono-label">Report history</span>
-          <b>18 posts</b>
+        <div class="community-grid">
+          <article class="dispatch-card large"><div class="dispatch-photo photo-blacks"><span class="fresh-flag">18 min ago</span><span class="dispatch-location"><strong>Black’s Beach</strong><span>Advanced–Expert · 5–6 ft</span></span></div><div class="dispatch-body"><p>“Inconsistent, but the canyon sets have real push. South peak looks cleaner than the crowd makes it seem.”</p><div class="dispatch-meta"><span>CanyonWatch</span><span>7/10 · Decent</span><span>3 comments</span></div></div></article>
+          <article class="dispatch-card medium"><div class="dispatch-photo photo-oceanside"><span class="dispatch-location"><strong>Oceanside Harbor</strong><span>Intermediate–Advanced · 3–4 ft</span></span></div><div class="dispatch-body"><p>“Peaky near the rocks with a light offshore holding up the faces.”</p><div class="dispatch-meta"><span>JettyLocal</span><span>8/10 · Good</span><span>2 comments</span></div></div></article>
+          <article class="dispatch-card small"><div class="dispatch-photo photo-swamis"><span class="dispatch-location"><strong>Swami’s</strong><span>Intermediate · 2–3 ft</span></span></div><div class="dispatch-body"><p>“Long waits, but the rights are connecting.”</p><div class="dispatch-meta"><span>RailGrab</span><span>6 comments</span></div></div></article>
+          <article class="dispatch-card small"><div class="dispatch-photo photo-delmar"><span class="dispatch-location"><strong>Del Mar</strong><span>Beginner–Intermediate · 2–3 ft</span></span></div><div class="dispatch-body"><p>“Soft but clean. Plenty of room north of the main peak.”</p><div class="dispatch-meta"><span>SandbarSD</span><span>1 comment</span></div></div></article>
+          <article class="dispatch-card small"><div class="dispatch-photo photo-rockpile"><span class="dispatch-location"><strong>Rockpile</strong><span>Intermediate–Advanced · 3–4 ft</span></span></div><div class="dispatch-body"><p>“A few hollow ones when the sets arrive.”</p><div class="dispatch-meta"><span>AdamDev</span><span>4 comments</span></div></div></article>
+          <section class="community-cta"><div><h2>Standing on the beach?</h2><p>Your thirty-second report could save someone a forty-minute drive.</p></div><button class="primary-button" type="button" data-composer-open>Post what you see →</button></section>
         </div>
-        <div class="account-card reveal d4">
-          <span class="mono-label">Next badge</span>
-          <b>100 Reports</b>
+      </div>
+    </section>
+
+    <section class="view view-account" data-view="account" hidden>
+      <div class="page-shell">
+        <div class="account-title"><p class="eyebrow">Your corner of the coast</p><h1>AdamDev</h1></div>
+        <div class="account-dashboard">
+          <aside class="profile-card"><span class="drawer-avatar">AD</span><h2>AdamDev</h2><span>Member since June 2026</span><div class="profile-stats"><div><span>Reports</span><strong>18</strong></div><div><span>Comments</span><strong>47</strong></div></div><div class="badge-progress"><span>Next badge</span><strong>62 more reports until “100 Reports”</strong><div class="progress-track"></div></div></aside>
+          <div class="account-main">
+            <section class="account-panel"><div class="account-panel-head"><h2>Your report history</h2><button class="plain-button" type="button">View all</button></div><div class="history-preview-list"><article class="history-preview-item"><span class="history-thumb photo-windansea"></span><span class="history-copy"><strong>Windansea</strong><span>Clean early with shoulder-high sets.</span></span><span class="history-stat"><span>Height</span><strong>4–5 ft</strong></span><span class="history-stat"><span>Rating</span><strong>8/10 Good</strong></span><span class="history-stat"><span>Date</span><strong>Today</strong></span></article><article class="history-preview-item"><span class="history-thumb photo-rockpile"></span><span class="history-copy"><strong>Little Point / Rockpile</strong><span>A few hollow ones when the sets arrive.</span></span><span class="history-stat"><span>Height</span><strong>3–4 ft</strong></span><span class="history-stat"><span>Rating</span><strong>7/10 Decent</strong></span><span class="history-stat"><span>Date</span><strong>Jun 12</strong></span></article></div></section>
+            <section class="account-panel"><div class="account-panel-head"><h2>Account settings</h2></div><div class="settings-preview"><article class="setting-card"><h3>Username</h3><p>Change how your name appears on reports and comments. Available once every two weeks.</p><button type="button" data-preview-action="Username settings are only visual in this prototype.">Change username →</button></article><article class="setting-card"><h3>Password</h3><p>Update your password after confirming your current one. Your private information stays private.</p><button type="button" data-preview-action="Password settings are only visual in this prototype.">Reset password →</button></article></div></section>
+          </div>
         </div>
       </div>
     </section>
   </main>
+
+  <div class="composer-backdrop" data-composer aria-hidden="true">
+    <section class="composer" role="dialog" aria-modal="true" aria-labelledby="composer-title">
+      <div class="composer-head"><div><p class="eyebrow">Windansea · right now</p><h2 id="composer-title">Post what you see.</h2></div><button class="icon-button" type="button" aria-label="Close report form" data-composer-close><span class="close-icon"></span></button></div>
+      <div class="composer-grid">
+        <label class="preview-field full"><span>What are conditions like?</span><textarea placeholder="Example: 3–4 ft and clean with a light offshore breeze. Best sets are lining up near the south peak."></textarea></label>
+        <label class="preview-field"><span>Wave height</span><input type="text" placeholder="Example: 4 ft"></label>
+        <label class="preview-field"><span>Rating</span><input type="text" placeholder="1–10"></label>
+        <label class="preview-field full"><span>Optional video</span><input type="text" placeholder="Video upload would appear here"></label>
+      </div>
+      <p class="composer-note">Preview mode: this form is only here to show the redesigned posting experience. Nothing will be uploaded or saved.</p>
+      <div class="composer-actions"><button class="secondary-button" type="button" data-composer-close>Cancel</button><button class="primary-button" type="button" data-preview-action="Looks good—this would publish the report in the real app.">Preview post</button></div>
+    </section>
+  </div>
+
+  <div class="toast" role="status" aria-live="polite" data-toast></div>
 </body>
 </html>

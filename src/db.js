@@ -84,6 +84,7 @@ function migrate() {
   migrateReportEdits();
   migrateCommentReplies();
   migrateUserAccountSettings();
+  migrateUserProfiles();
 }
 
 // Adds a place to remember when someone last changed their username.
@@ -91,6 +92,15 @@ function migrateUserAccountSettings() {
   const columns = database.prepare("PRAGMA table_info(users)").all();
   if (!columns.some((column) => column.name === "usernameChangedAt")) {
     database.exec("ALTER TABLE users ADD COLUMN usernameChangedAt TEXT");
+  }
+}
+
+// Adds an optional profile photo to accounts created before public profiles
+// were introduced.
+function migrateUserProfiles() {
+  const columns = database.prepare("PRAGMA table_info(users)").all();
+  if (!columns.some((column) => column.name === "avatarUrl")) {
+    database.exec("ALTER TABLE users ADD COLUMN avatarUrl TEXT");
   }
 }
 
@@ -192,7 +202,27 @@ export function findUserByName(name) {
 // Normal user lookup leaves out password info so pages do not accidentally use it.
 export function findUserById(id) {
   return getDatabase()
-    .prepare("SELECT id, name, email, usernameChangedAt, createdAt FROM users WHERE id = ?")
+    .prepare(`
+      SELECT users.id, users.name, users.email, users.avatarUrl,
+        users.usernameChangedAt, users.createdAt,
+        (SELECT COUNT(*) FROM reports WHERE reports.userId = users.id) AS reportCount,
+        (SELECT COUNT(*) FROM comments WHERE comments.userId = users.id) AS commentCount
+      FROM users
+      WHERE users.id = ?
+    `)
+    .get(id);
+}
+
+// Public profiles never include email addresses or password information.
+export function findPublicUserById(id) {
+  return getDatabase()
+    .prepare(`
+      SELECT users.id, users.name, users.avatarUrl, users.createdAt,
+        (SELECT COUNT(*) FROM reports WHERE reports.userId = users.id) AS reportCount,
+        (SELECT COUNT(*) FROM comments WHERE comments.userId = users.id) AS commentCount
+      FROM users
+      WHERE users.id = ?
+    `)
     .get(id);
 }
 
@@ -216,6 +246,13 @@ export function updatePassword(userId, passwordHash) {
     .run(passwordHash, userId);
 }
 
+export function updateUserAvatar(userId, avatarUrl) {
+  getDatabase()
+    .prepare("UPDATE users SET avatarUrl = ? WHERE id = ?")
+    .run(avatarUrl || null, userId);
+  return findUserById(userId);
+}
+
 // Report history helpers for the account page.
 export function findMostRecentReportForUser(userId) {
   return getDatabase()
@@ -233,7 +270,9 @@ export function findMostRecentReportForUser(userId) {
 export function listReportsForUser(userId) {
   return getDatabase()
     .prepare(`
-      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug
+      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug,
+        surf_spots.imageUrl AS surfSpotImageUrl,
+        (SELECT COUNT(*) FROM comments WHERE comments.reportId = reports.id) AS commentCount
       FROM reports
       JOIN surf_spots ON surf_spots.id = reports.surfSpotId
       WHERE reports.userId = ?
@@ -317,6 +356,7 @@ export function listReportsForSpot(surfSpotId) {
     .prepare(`
       SELECT reports.*,
         users.name AS userName,
+        users.avatarUrl AS userAvatarUrl,
         (
           SELECT COUNT(*)
           FROM reports AS user_reports
@@ -335,7 +375,7 @@ export function listReportsForSpot(surfSpotId) {
 export function listCommentsForSpot(surfSpotId) {
   return getDatabase()
     .prepare(`
-      SELECT comments.*, users.name AS userName
+      SELECT comments.*, users.name AS userName, users.avatarUrl AS userAvatarUrl
       FROM comments
       JOIN users ON users.id = comments.userId
       JOIN reports ON reports.id = comments.reportId
@@ -343,6 +383,48 @@ export function listCommentsForSpot(surfSpotId) {
       ORDER BY comments.createdAt ASC, comments.id ASC
     `)
     .all(surfSpotId);
+}
+
+// Powers the homepage, community page, and the report rail beside the map.
+export function listRecentReports(limit = 20) {
+  return getDatabase()
+    .prepare(`
+      SELECT reports.*,
+        surf_spots.name AS surfSpotName,
+        surf_spots.slug AS surfSpotSlug,
+        surf_spots.imageUrl AS surfSpotImageUrl,
+        surf_spots.difficulty AS surfSpotDifficulty,
+        surf_spots.latitude AS surfSpotLatitude,
+        users.name AS userName,
+        users.avatarUrl AS userAvatarUrl,
+        (SELECT COUNT(*) FROM reports AS user_reports WHERE user_reports.userId = users.id) AS userReportCount,
+        (SELECT COUNT(*) FROM comments WHERE comments.reportId = reports.id) AS commentCount
+      FROM reports
+      JOIN surf_spots ON surf_spots.id = reports.surfSpotId
+      JOIN users ON users.id = reports.userId
+      ORDER BY reports.createdAt DESC, reports.id DESC
+      LIMIT ?
+    `)
+    .all(Number(limit));
+}
+
+// Finds the closest breaks for the "Nearby Spots" section on a spot page.
+export function listNearbySurfSpots(spot, limit = 3) {
+  return getDatabase()
+    .prepare(`
+      SELECT surf_spots.*,
+        ((latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?)) AS distanceScore,
+        EXISTS (
+          SELECT 1 FROM reports
+          WHERE reports.surfSpotId = surf_spots.id
+            AND date(reports.createdAt) = date('now')
+        ) AS hasReportToday
+      FROM surf_spots
+      WHERE id != ?
+      ORDER BY distanceScore ASC
+      LIMIT ?
+    `)
+    .all(spot.latitude, spot.latitude, spot.longitude, spot.longitude, spot.id, Number(limit));
 }
 
 // Saves a comment only if the report exists. For replies, the original comment

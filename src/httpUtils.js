@@ -12,6 +12,7 @@ const mimeTypes = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
+  ".svg": "image/svg+xml",
   ".html": "text/html; charset=utf-8",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
@@ -23,6 +24,12 @@ const allowedVideoTypes = new Map([
   ["video/mp4", ".mp4"],
   ["video/webm", ".webm"],
   ["video/quicktime", ".mov"]
+]);
+
+const allowedImageTypes = new Map([
+  ["image/png", ".png"],
+  ["image/jpeg", ".jpg"],
+  ["image/webp", ".webp"]
 ]);
 
 // Adds simple response shortcuts so route code is easier to read.
@@ -38,7 +45,7 @@ export function decorateResponse(response) {
   };
 
   response.notFound = () => {
-    response.html("<h1>Not found</h1>", 404);
+    response.html("<h1>Not Found</h1>", 404);
   };
 }
 
@@ -51,17 +58,38 @@ export async function readForm(request) {
 
 // Reads forms that include files, like the create-report form with a video.
 export async function readMultipartForm(request) {
+  return readMultipartUpload(request, {
+    allowedTypes: allowedVideoTypes,
+    fileFieldName: "video",
+    fileLabel: "Video",
+    maxBytes: config.maxUploadBytes,
+    typeError: "Video must be MP4, WebM, or MOV."
+  });
+}
+
+// Profile photos use a smaller limit and only accept browser-friendly images.
+export async function readProfileImageForm(request) {
+  return readMultipartUpload(request, {
+    allowedTypes: allowedImageTypes,
+    fileFieldName: "avatar",
+    fileLabel: "Profile photo",
+    maxBytes: 5 * 1024 * 1024,
+    typeError: "Profile photo must be PNG, JPG, or WebP."
+  });
+}
+
+async function readMultipartUpload(request, { allowedTypes, fileFieldName, fileLabel, maxBytes, typeError }) {
   const contentType = request.headers["content-type"] || "";
   const boundary = contentType.match(/boundary=(.+)$/)?.[1];
   if (!boundary) return { fields: {}, file: undefined, errors: ["Invalid upload request."] };
 
-  const body = await readBody(request, config.maxUploadBytes + 200_000);
+  const body = await readBody(request, maxBytes + 200_000);
   const parts = body.toString("binary").split(`--${boundary}`);
   const fields = {};
   let file;
   const errors = [];
 
-  // Pull out normal text fields plus one optional video file.
+  // Pull out normal text fields plus the one expected upload field.
   for (const part of parts) {
     if (!part.includes("Content-Disposition")) continue;
     const [rawHeaders, rawValue] = part.split("\r\n\r\n");
@@ -78,21 +106,22 @@ export async function readMultipartForm(request) {
     }
 
     if (!filename.trim()) continue;
-    if (!allowedVideoTypes.has(type)) {
-      errors.push("Video must be MP4, WebM, or MOV.");
+    if (name !== fileFieldName) continue;
+    if (!allowedTypes.has(type)) {
+      errors.push(typeError);
       continue;
     }
 
     const buffer = Buffer.from(valueBinary, "binary");
-    if (buffer.length > config.maxUploadBytes) {
-      errors.push("Video must be 50 MB or smaller.");
+    if (buffer.length > maxBytes) {
+      errors.push(`${fileLabel} must be ${formatFileSize(maxBytes)} or smaller.`);
       continue;
     }
 
-    // Save the uploaded video under a new random-looking filename, so the user's
+    // Save the upload under a new random-looking filename, so the user's
     // original filename cannot overwrite another file.
     const safeName = `${Date.now()}-${cryptoRandom()}`;
-    const extension = allowedVideoTypes.get(type);
+    const extension = allowedTypes.get(type);
     const relativePath = `/uploads/${safeName}${extension}`;
     const absolutePath = path.join(config.uploadDir, `${safeName}${extension}`);
     fs.mkdirSync(config.uploadDir, { recursive: true });
@@ -101,6 +130,10 @@ export async function readMultipartForm(request) {
   }
 
   return { fields, file, errors };
+}
+
+function formatFileSize(bytes) {
+  return bytes >= 1024 * 1024 ? `${Math.round(bytes / (1024 * 1024))} MB` : `${Math.round(bytes / 1024)} KB`;
 }
 
 // Serves files from the public folder. The path checks stop someone from asking

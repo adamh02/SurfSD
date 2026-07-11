@@ -1,87 +1,68 @@
-// This file runs in the user's browser. It handles clickable/interactive parts
-// of the site, like the map, delete popups, replies, and password Show/Hide.
+// Shared browser interactions for the side drawer, account forms, comments,
+// report confirmations, and the live surf map.
 window.addEventListener("DOMContentLoaded", () => {
+  initializeDrawer();
   initializeHeaderScroll();
   initializeConfirmForms();
   initializeReplyToggles();
   initializePasswordToggles();
-
-  // This same file loads on every page. If this page does not have the map
-  // element, stop before running any map code.
-  const mapElement = document.querySelector("#surf-map");
-  if (!mapElement || !window.L) return;
-
-  // The server puts all surf spot info into this page so the browser can draw
-  // map markers.
-  const spots = JSON.parse(mapElement.dataset.spots || "[]");
-  const mapShell = mapElement.closest(".map-shell");
-
-  // Create the map. Leaflet is the map library, like the engine behind the map.
-  // We turn off the default zoom buttons so we can place our own in the corner.
-  const map = L.map(mapElement, { scrollWheelZoom: true, zoomControl: false }).setView([32.92, -117.28], 10);
-  L.control.zoom({ position: "bottomright" }).addTo(map);
-
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 18,
-    attribution: "&copy; OpenStreetMap"
-  }).addTo(map);
-
-  // Build custom circular markers. Spots with a report today get a red dot.
-  const markerIcon = (spot) => L.divIcon({
-    className: `surf-marker${spot.hasReportToday ? " has-report-today" : ""}`,
-    html: spot.hasReportToday ? '<span class="fresh-report-dot" aria-hidden="true"></span>' : "",
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
-    popupAnchor: [0, -12]
-  });
-
-  const markerBounds = [];
-
-  // Add one marker and popup for every surf spot.
-  spots.forEach((spot) => {
-    markerBounds.push([spot.latitude, spot.longitude]);
-    L.marker([spot.latitude, spot.longitude], { icon: markerIcon(spot) })
-      .addTo(map)
-      .bindPopup(`<strong>${spot.name}</strong><br>${spot.difficulty}${spot.hasReportToday ? "<br>New Report Today" : ""}<br><a href="/spots/${spot.slug}">View</a>`);
-  });
-
-  // Reset view zooms the map back out so all surf spot markers fit on screen.
-  const resetView = () => {
-    if (markerBounds.length) {
-      map.flyToBounds(markerBounds, { padding: [40, 40], maxZoom: 10, duration: 0.7 });
-      return;
-    }
-
-    map.flyTo([32.92, -117.28], 10, { duration: 0.7 });
-  };
-
-  resetView();
-  addResetControl(map, resetView);
-
-  // Once the user starts using the map, hide the floating intro panels so the map
-  // has more room.
-  const hidePanels = () => {
-    mapShell?.classList.add("map-panels-hidden");
-  };
-
-  map.on("click dragstart zoomstart popupopen", hidePanels);
+  initializeMapFilters();
+  initializeSurfMap();
 });
 
-// Any form with data-confirm shows an "are you sure?" popup before it submits.
-// This is used for deleting reports and comments.
+function initializeHeaderScroll() {
+  const header = document.querySelector(".topbar");
+  if (!header) return;
+
+  let previousScrollPosition = window.scrollY;
+  window.addEventListener("scroll", () => {
+    const currentScrollPosition = window.scrollY;
+    const scrollingDown = currentScrollPosition > previousScrollPosition + 6;
+    const scrollingUp = currentScrollPosition < previousScrollPosition - 6;
+
+    if (document.body.classList.contains("menu-open") || currentScrollPosition < 56 || scrollingUp) {
+      header.classList.remove("is-hidden");
+    } else if (scrollingDown) {
+      header.classList.add("is-hidden");
+    }
+
+    previousScrollPosition = currentScrollPosition;
+  }, { passive: true });
+}
+
+function initializeDrawer() {
+  const drawer = document.querySelector("[data-drawer]");
+  if (!drawer) return;
+
+  const openDrawer = () => {
+    document.body.classList.add("menu-open");
+    document.querySelector(".topbar")?.classList.remove("is-hidden");
+    drawer.setAttribute("aria-hidden", "false");
+  };
+
+  const closeDrawer = () => {
+    document.body.classList.remove("menu-open");
+    drawer.setAttribute("aria-hidden", "true");
+  };
+
+  document.querySelectorAll("[data-menu-open]").forEach((button) => button.addEventListener("click", openDrawer));
+  document.querySelectorAll("[data-menu-close]").forEach((button) => button.addEventListener("click", closeDrawer));
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeDrawer();
+  });
+}
+
+// Any form with data-confirm shows an "Are you sure?" popup before submitting.
+// This protects report, comment, avatar, and other delete actions.
 function initializeConfirmForms() {
   document.querySelectorAll("form[data-confirm]").forEach((form) => {
     form.addEventListener("submit", (event) => {
       const message = form.dataset.confirm || "Are you sure?";
-      if (!window.confirm(message)) {
-        event.preventDefault();
-      }
+      if (!window.confirm(message)) event.preventDefault();
     });
   });
 }
 
-// Login password Show/Hide button. This only changes whether the password is
-// visible on screen; it does not change what the user typed.
 function initializePasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     const field = button.closest(".password-field");
@@ -99,7 +80,6 @@ function initializePasswordToggles() {
   });
 }
 
-// Reply forms start hidden. Clicking Reply opens the form under that comment.
 function initializeReplyToggles() {
   document.querySelectorAll("[data-reply-toggle]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -108,61 +88,115 @@ function initializeReplyToggles() {
       const isHidden = replyForm.hasAttribute("hidden");
       replyForm.toggleAttribute("hidden", !isHidden);
       button.textContent = isHidden ? "Cancel Reply" : "Reply";
+      if (isHidden) replyForm.querySelector("textarea")?.focus();
     });
   });
 }
 
-// Adds the ↺ button that resets the map view.
+function initializeMapFilters() {
+  const filterButtons = [...document.querySelectorAll("[data-map-filter]")];
+  const reportCards = [...document.querySelectorAll("[data-report-region]")];
+  if (!filterButtons.length || !reportCards.length) return;
+
+  filterButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      const region = button.dataset.mapFilter;
+      filterButtons.forEach((item) => item.classList.toggle("is-active", item === button));
+      reportCards.forEach((card) => card.toggleAttribute("hidden", region !== "all" && card.dataset.reportRegion !== region));
+    });
+  });
+}
+
+function initializeSurfMap() {
+  const mapElement = document.querySelector("#surf-map");
+  if (!mapElement || !window.L) return;
+
+  const spots = JSON.parse(mapElement.dataset.spots || "[]");
+  const map = L.map(mapElement, { scrollWheelZoom: true, zoomControl: false }).setView([32.92, -117.28], 10);
+  L.control.zoom({ position: "bottomright" }).addTo(map);
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    maxZoom: 18,
+    attribution: "&copy; OpenStreetMap"
+  }).addTo(map);
+
+  const markerIcon = (spot) => L.divIcon({
+    className: `surf-marker${spot.hasReportToday ? " has-report-today" : ""}`,
+    html: "",
+    iconSize: [28, 28],
+    iconAnchor: [14, 28],
+    popupAnchor: [0, -26]
+  });
+
+  const markerBounds = [];
+  const markerRecords = [];
+
+  spots.forEach((spot) => {
+    markerBounds.push([spot.latitude, spot.longitude]);
+    const marker = L.marker([spot.latitude, spot.longitude], { icon: markerIcon(spot) })
+      .addTo(map)
+      .bindPopup(`<strong>${escapeMapText(spot.name)}</strong>${spot.hasReportToday ? "<br>New Report Today" : ""}<br><a href="/spots/${encodeURIComponent(spot.slug)}">View Spot</a>`);
+    markerRecords.push({ marker, spot });
+  });
+
+  const resetView = () => {
+    map.closePopup();
+    const search = document.querySelector("[data-map-search]");
+    if (search) search.value = "";
+    if (markerBounds.length) {
+      map.flyToBounds(markerBounds, { padding: [42, 42], maxZoom: 10, duration: 0.7 });
+      return;
+    }
+    map.flyTo([32.92, -117.28], 10, { duration: 0.7 });
+  };
+
+  resetView();
+  addResetControl(map, resetView);
+  initializeMapSearch(map, markerRecords, resetView);
+}
+
+function initializeMapSearch(map, markerRecords, resetView) {
+  const search = document.querySelector("[data-map-search]");
+  if (!search) return;
+
+  search.addEventListener("input", () => {
+    const term = search.value.trim().toLowerCase();
+    if (!term) {
+      resetView();
+      return;
+    }
+
+    const match = markerRecords.find(({ spot }) => spot.name.toLowerCase().includes(term));
+    if (!match) return;
+    map.flyTo([match.spot.latitude, match.spot.longitude], 13, { duration: 0.55 });
+    match.marker.openPopup();
+  });
+}
+
 function addResetControl(map, resetView) {
   const resetControl = L.control({ position: "bottomright" });
-
   resetControl.onAdd = () => {
     const container = L.DomUtil.create("div", "leaflet-bar reset-view-control");
     const button = L.DomUtil.create("button", "", container);
     button.type = "button";
-    button.setAttribute("aria-label", "Reset map view");
-    button.title = "Reset map view";
+    button.setAttribute("aria-label", "Reset Map View");
+    button.title = "Reset Map View";
     button.textContent = "↺";
-
     L.DomEvent.disableClickPropagation(container);
     L.DomEvent.on(button, "click", (event) => {
       L.DomEvent.stop(event);
       resetView();
     });
-
     return container;
   };
-
   resetControl.addTo(map);
 }
 
-// Hides the nav when scrolling down and brings it back when scrolling up so the
-// header does not cover the page.
-function initializeHeaderScroll() {
-  const header = document.querySelector(".site-header");
-  if (!header) return;
-
-  let lastScrollY = window.scrollY;
-  let ticking = false;
-
-  const updateHeader = () => {
-    const currentScrollY = window.scrollY;
-    const isScrollingDown = currentScrollY > lastScrollY + 2;
-    const isScrollingUp = currentScrollY < lastScrollY - 2;
-
-    if (currentScrollY <= 40 || isScrollingUp) {
-      header.classList.remove("header-hidden");
-    } else if (isScrollingDown && currentScrollY > 72) {
-      header.classList.add("header-hidden");
-    }
-
-    lastScrollY = Math.max(currentScrollY, 0);
-    ticking = false;
-  };
-
-  window.addEventListener("scroll", () => {
-    if (ticking) return;
-    ticking = true;
-    window.requestAnimationFrame(updateHeader);
-  }, { passive: true });
+function escapeMapText(value = "") {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }

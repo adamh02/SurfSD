@@ -35,8 +35,6 @@ export function createApp(options = {}) {
         url.pathname.startsWith("/spot-images/") ||
         url.pathname === "/styles.css" ||
         url.pathname === "/map.js" ||
-        url.pathname === "/design-preview.html" ||
-        url.pathname === "/design-preview.js" ||
         url.pathname === "/sd-map.svg" ||
         url.pathname === "/surfsd-logo.png"
       ) {

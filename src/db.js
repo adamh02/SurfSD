@@ -253,20 +253,7 @@ export function updateUserAvatar(userId, avatarUrl) {
   return findUserById(userId);
 }
 
-// Report history helpers for the account page.
-export function findMostRecentReportForUser(userId) {
-  return getDatabase()
-    .prepare(`
-      SELECT reports.*, surf_spots.name AS surfSpotName, surf_spots.slug AS surfSpotSlug
-      FROM reports
-      JOIN surf_spots ON surf_spots.id = reports.surfSpotId
-      WHERE reports.userId = ?
-      ORDER BY reports.createdAt DESC, reports.id DESC
-      LIMIT 1
-    `)
-    .get(userId);
-}
-
+// Report history helper for the account page.
 export function listReportsForUser(userId) {
   return getDatabase()
     .prepare(`
@@ -406,25 +393,6 @@ export function listRecentReports(limit = 20) {
       LIMIT ?
     `)
     .all(Number(limit));
-}
-
-// Finds the closest breaks for the "Nearby Spots" section on a spot page.
-export function listNearbySurfSpots(spot, limit = 3) {
-  return getDatabase()
-    .prepare(`
-      SELECT surf_spots.*,
-        ((latitude - ?) * (latitude - ?) + (longitude - ?) * (longitude - ?)) AS distanceScore,
-        EXISTS (
-          SELECT 1 FROM reports
-          WHERE reports.surfSpotId = surf_spots.id
-            AND date(reports.createdAt) = date('now')
-        ) AS hasReportToday
-      FROM surf_spots
-      WHERE id != ?
-      ORDER BY distanceScore ASC
-      LIMIT ?
-    `)
-    .all(spot.latitude, spot.latitude, spot.longitude, spot.longitude, spot.id, Number(limit));
 }
 
 // Saves a comment only if the report exists. For replies, the original comment

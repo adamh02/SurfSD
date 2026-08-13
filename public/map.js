@@ -10,6 +10,7 @@ window.addEventListener("DOMContentLoaded", () => {
   initializeSurfMap();
 });
 
+// Hides the header while scrolling down and brings it back while scrolling up.
 function initializeHeaderScroll() {
   const header = document.querySelector(".topbar");
   if (!header) return;
@@ -30,6 +31,7 @@ function initializeHeaderScroll() {
   }, { passive: true });
 }
 
+// Opens and closes the side menu. Escape also closes it for keyboard users.
 function initializeDrawer() {
   const drawer = document.querySelector("[data-drawer]");
   if (!drawer) return;
@@ -63,6 +65,7 @@ function initializeConfirmForms() {
   });
 }
 
+// Changes a password field between hidden dots and readable text.
 function initializePasswordToggles() {
   document.querySelectorAll("[data-password-toggle]").forEach((button) => {
     const field = button.closest(".password-field");
@@ -80,6 +83,7 @@ function initializePasswordToggles() {
   });
 }
 
+// Keeps reply forms collapsed until someone chooses a specific comment.
 function initializeReplyToggles() {
   document.querySelectorAll("[data-reply-toggle]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -93,6 +97,7 @@ function initializeReplyToggles() {
   });
 }
 
+// Filters the report rail beside the map by coastal region.
 function initializeMapFilters() {
   const filterButtons = [...document.querySelectorAll("[data-map-filter]")];
   const reportCards = [...document.querySelectorAll("[data-report-region]")];
@@ -107,6 +112,7 @@ function initializeMapFilters() {
   });
 }
 
+// Creates the Leaflet map, map tiles, surf spot markers, and reset behavior.
 function initializeSurfMap() {
   const mapElement = document.querySelector("#surf-map");
   if (!mapElement || !window.L) return;
@@ -155,6 +161,7 @@ function initializeSurfMap() {
   initializeMapSearch(map, markerRecords, resetView);
 }
 
+// Finds the first spot whose name contains what the visitor typed.
 function initializeMapSearch(map, markerRecords, resetView) {
   const search = document.querySelector("[data-map-search]");
   if (!search) return;
@@ -173,6 +180,7 @@ function initializeMapSearch(map, markerRecords, resetView) {
   });
 }
 
+// Adds the circular reset symbol beside Leaflet's zoom controls.
 function addResetControl(map, resetView) {
   const resetControl = L.control({ position: "bottomright" });
   resetControl.onAdd = () => {
@@ -192,6 +200,7 @@ function addResetControl(map, resetView) {
   resetControl.addTo(map);
 }
 
+// Stops surf spot names from being interpreted as HTML inside map popups.
 function escapeMapText(value = "") {
   return String(value)
     .replaceAll("&", "&amp;")

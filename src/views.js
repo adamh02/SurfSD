@@ -1,4 +1,7 @@
 import { listSurfSpots } from "./db.js";
+import { config } from "./config.js";
+
+const defaultDescription = "Live San Diego surf reports, local conditions, videos, ratings, and conversations shared by the SurfSD community.";
 
 // Shared wrapper for every page. The side drawer replaces the old row of menu
 // links while keeping the same destinations and account behavior.
@@ -8,8 +11,38 @@ export function layout({
   body,
   flash = "",
   active = "home",
-  includeMap = false
+  includeMap = false,
+  description = defaultDescription,
+  canonicalPath,
+  imagePath = "/spot-images/windansea.png",
+  imageAlt = "San Diego surf conditions",
+  robots = "index, follow"
 }) {
+  const defaultPaths = { home: "/", map: "/map", community: "/community", about: "/about", account: "/account" };
+  const resolvedPath = canonicalPath || defaultPaths[active] || "/";
+  const canonicalUrl = absoluteUrl(resolvedPath);
+  const socialImageUrl = absoluteUrl(imagePath);
+  const fullTitle = `${title} | SurfSD`;
+  const structuredData = serializeStructuredData({
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": `${config.siteUrl}/#organization`,
+        name: "SurfSD",
+        url: `${config.siteUrl}/`,
+        logo: absoluteUrl("/surfsd-logo.png")
+      },
+      {
+        "@type": "WebSite",
+        "@id": `${config.siteUrl}/#website`,
+        name: "SurfSD",
+        url: `${config.siteUrl}/`,
+        description: defaultDescription,
+        publisher: { "@id": `${config.siteUrl}/#organization` }
+      }
+    ]
+  });
   const accountContent = user
     ? `<a class="drawer-profile" href="/users/${escapeHtml(user.id)}">
         ${avatarMarkup(user, "drawer-avatar")}
@@ -25,10 +58,27 @@ export function layout({
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="color-scheme" content="light">
-    <title>${escapeHtml(title)} | SurfSD</title>
+    <meta name="description" content="${escapeHtml(description)}">
+    <meta name="robots" content="${escapeHtml(robots)}">
+    <link rel="canonical" href="${escapeHtml(canonicalUrl)}">
+    <link rel="icon" type="image/png" href="/surfsd-logo.png">
+    <link rel="apple-touch-icon" href="/surfsd-logo.png">
+    <meta property="og:site_name" content="SurfSD">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="${escapeHtml(fullTitle)}">
+    <meta property="og:description" content="${escapeHtml(description)}">
+    <meta property="og:url" content="${escapeHtml(canonicalUrl)}">
+    <meta property="og:image" content="${escapeHtml(socialImageUrl)}">
+    <meta property="og:image:alt" content="${escapeHtml(imageAlt)}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="${escapeHtml(fullTitle)}">
+    <meta name="twitter:description" content="${escapeHtml(description)}">
+    <meta name="twitter:image" content="${escapeHtml(socialImageUrl)}">
+    <title>${escapeHtml(fullTitle)}</title>
     <link rel="stylesheet" href="/styles.css">
     ${includeMap ? `<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>` : ""}
     <script defer src="/map.js"></script>
+    <script type="application/ld+json">${structuredData}</script>
   </head>
   <body>
     <header class="topbar">
@@ -60,6 +110,7 @@ export function layout({
         <strong>San Diego Beta</strong>
         <p>Real reports from surfers across the San Diego coast.</p>
       </div>
+      <div class="drawer-legal"><a href="/privacy">Privacy</a></div>
       ${accountContent}
     </aside>
 
@@ -87,6 +138,7 @@ export function homePage({ user, reports = [] }) {
     title: "Community Surf Reports",
     user,
     active: "home",
+    description: "See firsthand San Diego surf reports, ratings, clips, and conversations from surfers already at the break.",
     body: `<section class="home-hero">
       <div class="hero-copy">
         <h1>Know Before You Paddle Out.</h1>
@@ -148,6 +200,7 @@ export function mapPage({ user, conditions, recentReports = [], now = new Date()
     user,
     active: "map",
     includeMap: true,
+    description: "Explore San Diego surf spots on SurfSD's live community map and see the latest local reports and conditions.",
     body: `<section class="map-workspace">
       <div class="map-canvas-shell">
         <div class="map-toolbar">
@@ -178,6 +231,7 @@ export function communityPage({ user, reports = [] }) {
     title: "Feed",
     user,
     active: "community",
+    description: "Browse the newest community surf reports, ratings, videos, and conversations from breaks across San Diego.",
     body: `<section class="page-shell community-page">
       <div class="section-title"><div><h1>Latest Surf Reports.</h1></div></div>
       ${reports.length ? `<div class="dispatch-grid">${reports.map(communityCard).join("")}</div>` : `<section class="community-empty"><h2>No Community Reports Yet</h2><p>The map is ready. The first report can be yours.</p><a class="primary-button" href="/map">Open the Live Map</a></section>`}
@@ -200,10 +254,44 @@ export function aboutPage({ user }) {
     title: "About",
     user,
     active: "about",
+    description: "Learn how SurfSD helps San Diego surfers share firsthand conditions and community reports from local breaks.",
     body: `<section class="simple-about page-shell">
       <div class="simple-about-copy"><p class="eyebrow">About SurfSD</p><h1>What Is SurfSD?</h1><p>SurfSD is a community driven surf reporting platform built specifically for San Diego surfers. The platform allows users to post real time surf reports, including wave ratings, estimated wave heights, photos, and videos from local surf spots across the county.</p><p>The goal of SurfSD is to make current surf conditions more accessible through firsthand reports from the people actually in the water. While surf cams and swell forecasts are valuable tools, they don't always tell the full story. SurfSD bridges that gap by providing live, crowd sourced updates from local surfers.</p><p>Currently focused exclusively on San Diego, SurfSD is an active and evolving project with plans to expand to surf communities around the world in the future.</p></div>
       <img class="simple-about-logo" src="/surfsd-logo.png" alt="SurfSD Original Logo">
     </section>`
+  });
+}
+
+export function privacyPage({ user }) {
+  return layout({
+    title: "Privacy",
+    user,
+    active: "about",
+    canonicalPath: "/privacy",
+    description: "Read how SurfSD handles account information, public profile details, reports, comments, and uploaded media.",
+    body: `<section class="legal-page page-shell"><p class="eyebrow">Privacy</p><h1>Privacy at SurfSD.</h1><p class="legal-updated">Last Updated August 10, 2026</p><div class="legal-copy"><section><h2>Information We Collect</h2><p>SurfSD stores the username and email address you provide when creating an account. Passwords are stored as protected password hashes, not readable passwords. If you participate in the community, SurfSD also stores the profile photo, surf reports, videos, ratings, comments, and replies you choose to submit.</p></section><section><h2>What Other Surfers Can See</h2><p>Your username, profile photo, contributor badge, report count, comment count, reports, and comments may appear publicly. Your email address and password information are never displayed on your public profile.</p></section><section><h2>How Information Is Used</h2><p>Information is used to operate accounts, display community reports, support conversations, protect report ownership, and improve SurfSD. SurfSD does not sell personal information.</p></section><section><h2>Uploads and Removal</h2><p>Only upload media you have permission to share. You can remove your profile photo, reports, and comments through the account and report controls. Account or data-removal requests can be handled through the official contact information published with SurfSD.</p></section><section><h2>Service Providers</h2><p>SurfSD uses public ocean, tide, weather, and mapping services to display conditions. Those services may receive normal technical information such as an IP address when their resources are requested.</p></section><section><h2>Changes</h2><p>This page will be updated if SurfSD's data practices change. The latest revision date will always appear near the top.</p></section></div></section>`
+  });
+}
+
+export function notFoundPage({ user }) {
+  return layout({
+    title: "Page Not Found",
+    user,
+    canonicalPath: "/404",
+    description: "The SurfSD page you requested could not be found.",
+    robots: "noindex, follow",
+    body: `<section class="status-page page-shell"><p class="status-code">404</p><p class="eyebrow">Off the Map</p><h1>That Page Wasn’t Found.</h1><p>The link may be old, or the page may have moved. Head back to the live map to keep checking the coast.</p><div class="status-actions"><a class="primary-button" href="/map">Open the Live Map</a><a class="secondary-button" href="/">Return Home</a></div></section>`
+  });
+}
+
+export function errorPage({ user }) {
+  return layout({
+    title: "Something Went Wrong",
+    user,
+    canonicalPath: "/error",
+    description: "SurfSD could not complete this request.",
+    robots: "noindex, nofollow",
+    body: `<section class="status-page page-shell"><p class="status-code">500</p><p class="eyebrow">Unexpected Set</p><h1>Something Went Wrong.</h1><p>Your account and reports are still safe. Try the request again, or return to the live map.</p><div class="status-actions"><a class="primary-button" href="/map">Open the Live Map</a><a class="secondary-button" href="/">Return Home</a></div></section>`
   });
 }
 
@@ -215,6 +303,7 @@ export function accountPage({ user, reports = [], error = "", message = "", next
       user,
       active: "account",
       flash: error || message,
+      robots: "noindex, nofollow",
       body: `<section class="auth-page page-shell"><div class="auth-intro"><p class="eyebrow">Join the Community</p><h1>Join the SurfSD Community.</h1><p>Create an account to post reports, ask questions, reply to surfers, and build your local profile.</p></div><div class="auth-grid">${authForm("Sign Up", "/signup", next, ["name", "email", "password"])}${authForm("Log In", "/login", next, ["email", "password"])}</div></section>`
     });
   }
@@ -224,6 +313,7 @@ export function accountPage({ user, reports = [], error = "", message = "", next
     user,
     active: "account",
     flash: error || message,
+    robots: "noindex, nofollow",
     body: `<section class="page-shell account-page">
       <div class="account-title"><p class="eyebrow">Your Corner of the Coast</p><h1>Your Account.</h1></div>
       <div class="account-dashboard">
@@ -260,6 +350,10 @@ export function profilePage({ user, profile, reports = [] }) {
     title: `${profile.name} Profile`,
     user,
     active: "community",
+    canonicalPath: `/users/${profile.id}`,
+    description: `View ${profile.name}'s public SurfSD profile, contributor badge, and recent San Diego surf reports.`,
+    imagePath: profile.avatarUrl || "/surfsd-logo.png",
+    imageAlt: `${profile.name}'s SurfSD profile photo`,
     body: `<section class="page-shell public-profile-page">
       <div class="public-profile-hero">${avatarMarkup(profile, "public-profile-avatar")}<div><p class="eyebrow">SurfSD Community Profile</p><h1>${escapeHtml(profile.name)}</h1><p>Member Since ${escapeHtml(formatDate(profile.createdAt))}</p></div>${user?.id === profile.id ? `<a class="secondary-button" href="/account">Edit Your Account</a>` : ""}</div>
       <div class="public-profile-stats"><div><span>Reports</span><strong>${escapeHtml(profile.reportCount || 0)}</strong></div><div><span>Comments</span><strong>${escapeHtml(profile.commentCount || 0)}</strong></div><div><span>Badge</span><strong>${escapeHtml(profileBadgeName(profile.reportCount))}</strong></div></div>
@@ -291,6 +385,10 @@ export function spotPage({ user, spot, reports, conditions, error = "" }) {
     user,
     active: "map",
     flash: error,
+    canonicalPath: `/spots/${spot.slug}`,
+    description: `${spot.description} View live conditions and firsthand community reports for ${spot.name} on SurfSD.`,
+    imagePath: spot.imageUrl,
+    imageAlt: `${spot.name} surf spot in San Diego`,
     body: `<section class="spot-cover" style="background-image:linear-gradient(0deg,rgba(4,25,31,.94),rgba(4,25,31,.12) 70%),url('${escapeHtml(spot.imageUrl)}')"><div class="spot-cover-inner"><div class="spot-identity"><p class="eyebrow light">${escapeHtml(spot.difficulty)} · San Diego</p><h1>${escapeHtml(spot.name)}</h1><p>${escapeHtml(spot.description)}</p></div><span class="spot-freshness"><span></span>${reports.length ? `${formatCount(reports.length, "Recent Report")}` : "No Recent Reports"}</span></div></section>
       <div class="spot-content">
         <section class="conditions-deck" aria-label="Live ${escapeHtml(spot.name)} Conditions"><div class="condition-cell"><span>Swell</span><strong>${escapeHtml(conditions.swell)}</strong><small><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time> · NOAA NDBC</small></div><div class="condition-cell"><span>Tide</span><strong>${escapeHtml(conditions.tide)}</strong><small><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time> · NOAA Tides & Currents</small></div><div class="condition-cell"><span>Weather</span><strong>${escapeHtml(conditions.weather)}</strong><small><time datetime="${escapeHtml(isoTimestamp)}">${escapeHtml(liveTimestamp)}</time> · National Weather Service</small></div><div class="condition-cell action-cell"><a class="primary-button" href="/spots/${escapeHtml(spot.slug)}/reports/new">＋ Create Report</a></div></section>
@@ -330,12 +428,19 @@ function deleteCommentForm(comment, report, spot) {
   return `<form class="comment-delete-form" method="post" action="/comments/${escapeHtml(comment.id)}/delete" data-confirm="Are you sure you want to delete this comment?"><input type="hidden" name="next" value="/spots/${escapeHtml(spot.slug)}"><input type="hidden" name="reportId" value="${escapeHtml(report.id)}"><button class="comment-delete-button" type="submit">Delete</button></form>`;
 }
 
+// The create form accepts an optional video. The edit form changes only the
+// written condition details, height, and rating.
 export function reportFormPage({ user, spot, error = "", values = {} }) {
   return layout({
     title: `Create Report for ${spot.name}`,
     user,
     active: "map",
     flash: error,
+    canonicalPath: `/spots/${spot.slug}/reports/new`,
+    description: `Create a firsthand SurfSD report for ${spot.name}.`,
+    imagePath: spot.imageUrl,
+    imageAlt: `${spot.name} surf spot in San Diego`,
+    robots: "noindex, nofollow",
     body: `<section class="report-editor-page"><div class="report-editor-intro" style="background-image:linear-gradient(0deg,rgba(4,25,31,.82),rgba(4,25,31,.14)),url('${escapeHtml(spot.imageUrl)}')"><div><p class="eyebrow light">${escapeHtml(spot.name)}</p><h1>Create Surf Report</h1><p>Share what you see so the next surfer has a clearer picture of the lineup.</p></div></div><form class="report-form" method="post" enctype="multipart/form-data" action="/spots/${escapeHtml(spot.slug)}/reports"><label>Video (Optional)<span>Upload a short MP4, WebM, or MOV clip of the current conditions.</span><input type="file" name="video" accept="video/mp4,video/webm,video/quicktime"></label><label>Description<span>Tell surfers what you are seeing from the beach.</span><textarea name="description" maxlength="280" placeholder="Example: 3–4 ft and clean with a light offshore breeze. Best sets are lining up near the south peak." required>${escapeHtml(values.description || "")}</textarea></label><div class="form-row"><label>Wave Height (Feet)<span>Enter the average face height you are seeing.</span><input type="number" name="waveHeight" min="1" max="100" placeholder="4" value="${escapeHtml(values.waveHeight || "")}" required></label><label>Rating, 1–10 (Optional)<span>Use 1 for poor conditions and 10 for firing conditions.</span><input type="number" name="rating" min="1" max="10" placeholder="7" value="${escapeHtml(values.rating || "")}"></label></div><button class="primary-button" type="submit">Save Report</button></form></section>`
   });
 }
@@ -346,6 +451,9 @@ export function editReportPage({ user, report, error = "" }) {
     user,
     active: "account",
     flash: error,
+    canonicalPath: `/reports/${report.id}/edit`,
+    description: `Edit your SurfSD report for ${report.surfSpotName}.`,
+    robots: "noindex, nofollow",
     body: `<section class="report-editor-page edit-report-page"><div class="report-editor-intro"><div><p class="eyebrow light">${escapeHtml(report.surfSpotName)}</p><h1>Edit Report</h1><p>Reports can only be edited within three hours. Updated reports show an Edited label.</p></div></div><form class="report-form" method="post" action="/reports/${escapeHtml(report.id)}/edit"><label>Description<span>Update what surfers should know about the conditions.</span><textarea name="description" maxlength="280" required>${escapeHtml(report.description || "")}</textarea></label><div class="form-row"><label>Wave Height (Feet)<span>Enter the average face height you are seeing.</span><input type="number" name="waveHeight" min="1" max="100" value="${escapeHtml(report.waveHeight || "")}" required></label><label>Rating, 1–10 (Optional)<span>Use 1 for poor conditions and 10 for firing conditions.</span><input type="number" name="rating" min="1" max="10" value="${escapeHtml(report.rating || "")}"></label></div><div class="form-actions"><button class="primary-button" type="submit">Save Changes</button><a class="secondary-button" href="/account">Back to Account</a></div></form></section>`
   });
 }
@@ -364,15 +472,18 @@ function reportMedia(mediaUrl) {
   return `<img src="${escapedUrl}" alt="Surf Report Media">`;
 }
 
+// These helpers keep profile pictures, badges, ratings, and dates consistent
+// anywhere a report or account appears.
 function profileAvatarLink(person) {
   const user = { id: person.userId ?? person.id, name: person.userName ?? person.name, avatarUrl: person.userAvatarUrl ?? person.avatarUrl };
   return `<a class="profile-avatar-link" href="/users/${escapeHtml(user.id)}" aria-label="View ${escapeHtml(user.name)} Profile">${avatarMarkup(user, "mini-avatar")}</a>`;
 }
 
 function avatarMarkup(person, className) {
-  const initials = String(person.name || person.userName || "S").split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
+  const displayName = String(person.name || person.userName || "SurfSD User");
+  const initials = displayName.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
   const avatarUrl = person.avatarUrl || person.userAvatarUrl;
-  return `<span class="avatar ${className}">${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="">` : `<span>${escapeHtml(initials || "S")}</span>`}</span>`;
+  return `<span class="avatar ${className}">${avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(`${displayName} Profile Photo`)}">` : `<span>${escapeHtml(initials || "S")}</span>`}</span>`;
 }
 
 function ratingSummary(rating) {
@@ -424,8 +535,18 @@ function formatCount(value, singular) {
   return `${count} ${singular}${count === 1 ? "" : "s"}`;
 }
 
+// Converts user-written characters such as < and > into plain text so they
+// cannot accidentally become HTML instructions inside the page.
 export function escapeHtml(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function absoluteUrl(pathname) {
+  return new URL(pathname, `${config.siteUrl}/`).toString();
+}
+
+function serializeStructuredData(value) {
+  return JSON.stringify(value).replaceAll("<", "\\u003c");
 }
 
 function formatDate(value) {

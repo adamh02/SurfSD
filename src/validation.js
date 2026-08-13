@@ -1,6 +1,6 @@
 // Validates surf report form input before it reaches the database. Returning the
 // parsed values here keeps route handlers from repeating Number(...) everywhere.
-export function validateReport({ description = "", waveHeight = "", rating = "", file }) {
+export function validateReport({ description = "", waveHeight = "", rating = "" }) {
   const errors = [];
   const parsedWaveHeight = Number(waveHeight);
   // Rating is optional, so blank means "no rating" instead of an error.

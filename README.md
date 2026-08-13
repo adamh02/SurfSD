@@ -85,6 +85,8 @@ I intentionally built this project without a web framework to better understand 
 - Upload requests are limited to 50 MB.
 - Secrets and local database files are excluded from Git with .gitignore.
 - A Content Security Policy limits which external resources the browser can load.
+- Public pages include unique titles, descriptions, canonical URLs, social-sharing metadata, structured data, and one primary heading.
+- SurfSD provides a custom error experience, Privacy page, favicon, `robots.txt`, `sitemap.xml`, and `llms.txt`.
 
 ## Running the Project Locally
 
@@ -108,7 +110,7 @@ I intentionally built this project without a web framework to better understand 
    cp .env.example .env
    ```
 
-3. Replace the example SESSION_SECRET in .env with a long random value.
+3. Replace the example `SESSION_SECRET` in `.env` with a long random value. When deploying, set `SITE_URL` to the final public address so canonical links and the sitemap use the correct domain.
 
 4. Load the environment variables and start the server:
 

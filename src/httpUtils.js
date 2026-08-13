@@ -44,8 +44,13 @@ export function decorateResponse(response) {
     response.end();
   };
 
-  response.notFound = () => {
-    response.html("<h1>Not Found</h1>", 404);
+  response.text = (body, contentType = "text/plain; charset=utf-8", status = 200) => {
+    response.writeHead(status, { "Content-Type": contentType });
+    response.end(body);
+  };
+
+  response.notFound = (html = "<h1>Not Found</h1>") => {
+    response.html(html, 404);
   };
 }
 
@@ -57,28 +62,30 @@ export async function readForm(request) {
 }
 
 // Reads forms that include files, like the create-report form with a video.
-export async function readMultipartForm(request) {
+export async function readMultipartForm(request, { uploadDir = config.uploadDir } = {}) {
   return readMultipartUpload(request, {
     allowedTypes: allowedVideoTypes,
     fileFieldName: "video",
     fileLabel: "Video",
     maxBytes: config.maxUploadBytes,
+    uploadDir,
     typeError: "Video must be MP4, WebM, or MOV."
   });
 }
 
 // Profile photos use a smaller limit and only accept browser-friendly images.
-export async function readProfileImageForm(request) {
+export async function readProfileImageForm(request, { uploadDir = config.uploadDir } = {}) {
   return readMultipartUpload(request, {
     allowedTypes: allowedImageTypes,
     fileFieldName: "avatar",
     fileLabel: "Profile photo",
     maxBytes: 5 * 1024 * 1024,
+    uploadDir,
     typeError: "Profile photo must be PNG, JPG, or WebP."
   });
 }
 
-async function readMultipartUpload(request, { allowedTypes, fileFieldName, fileLabel, maxBytes, typeError }) {
+async function readMultipartUpload(request, { allowedTypes, fileFieldName, fileLabel, maxBytes, uploadDir, typeError }) {
   const contentType = request.headers["content-type"] || "";
   const boundary = contentType.match(/boundary=(.+)$/)?.[1];
   if (!boundary) return { fields: {}, file: undefined, errors: ["Invalid upload request."] };
@@ -123,13 +130,24 @@ async function readMultipartUpload(request, { allowedTypes, fileFieldName, fileL
     const safeName = `${Date.now()}-${cryptoRandom()}`;
     const extension = allowedTypes.get(type);
     const relativePath = `/uploads/${safeName}${extension}`;
-    const absolutePath = path.join(config.uploadDir, `${safeName}${extension}`);
-    fs.mkdirSync(config.uploadDir, { recursive: true });
+    const absolutePath = path.join(uploadDir, `${safeName}${extension}`);
+    fs.mkdirSync(uploadDir, { recursive: true });
     fs.writeFileSync(absolutePath, buffer);
     file = { imageUrl: relativePath };
   }
 
   return { fields, file, errors };
+}
+
+// Removes an uploaded file after its report or profile photo is deleted. Using
+// only the filename prevents a saved path from reaching outside the upload folder.
+export function deleteUploadedFile(relativePath, uploadDir = config.uploadDir) {
+  if (!String(relativePath || "").startsWith("/uploads/")) return false;
+  const filename = path.basename(relativePath);
+  const absolutePath = path.join(uploadDir, filename);
+  if (!fs.existsSync(absolutePath)) return false;
+  fs.unlinkSync(absolutePath);
+  return true;
 }
 
 function formatFileSize(bytes) {

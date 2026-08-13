@@ -1,18 +1,36 @@
 import http from "node:http";
 import { config } from "./config.js";
-import { openDatabase, createComment, createReport, deleteCommentForUser, deleteReportForUser, findPublicUserById, findReportForUser, findSurfSpotBySlug, findUserById, listCommentsForSpot, listRecentReports, listReportsForSpot, listReportsForUser, updateReportForUser, updateUserAvatar } from "./db.js";
-import { decorateResponse, readForm, readMultipartForm, readProfileImageForm, serveStatic } from "./httpUtils.js";
+import {
+  createComment,
+  createReport,
+  deleteCommentForUser,
+  deleteReportForUser,
+  findPublicUserById,
+  findReportForUser,
+  findSurfSpotBySlug,
+  findUserById,
+  listCommentsForSpot,
+  listRecentReports,
+  listReportsForSpot,
+  listReportsForUser,
+  listSurfSpots,
+  openDatabase,
+  updateReportForUser,
+  updateUserAvatar
+} from "./db.js";
+import { decorateResponse, deleteUploadedFile, readForm, readMultipartForm, readProfileImageForm, serveStatic } from "./httpUtils.js";
 import { changeUsername, login, requireUser, resetPassword, signup, validateLogin, validateSignup } from "./auth.js";
 import { destroySession, readSession, writeSession } from "./session.js";
-import { aboutPage, accountPage, communityPage, editReportPage, homePage, mapPage, profilePage, reportFormPage, spotPage } from "./views.js";
+import { aboutPage, accountPage, communityPage, editReportPage, errorPage, homePage, mapPage, notFoundPage, privacyPage, profilePage, reportFormPage, spotPage } from "./views.js";
 import { validateReport } from "./validation.js";
 import { getSpotConditions, placeholderConditions } from "./conditions.js";
 
-// Builds the SurfSD web server. Tests use this too, but with a temporary
-// database instead of your real local database.
+// Builds the SurfSD HTTP server. Tests inject isolated database and upload paths.
 export function createApp(options = {}) {
   openDatabase(options.databasePath || config.databasePath);
   const conditionsProvider = options.conditionsProvider || getSpotConditions;
+  // An injectable upload path keeps automated test media separate from user uploads.
+  const uploadDir = options.uploadDir || config.uploadDir;
 
   return http.createServer(async (request, response) => {
     // Add shortcuts like response.html() and response.redirect(), then add basic
@@ -27,9 +45,23 @@ export function createApp(options = {}) {
       // current user for the rest of this request.
       request.session = readSession(request);
       request.user = request.session.userId ? findUserById(request.session.userId) : undefined;
+      response.notFound = () => response.html(notFoundPage({ user: request.user }), 404);
 
-      // Only serve public files we expect, like CSS, JS, images, uploads, and the
-      // design preview page.
+      // Search-engine and browser-support files.
+      if (request.method === "GET" && url.pathname === "/robots.txt") {
+        return response.text(buildRobotsText());
+      }
+      if (request.method === "GET" && url.pathname === "/sitemap.xml") {
+        return response.text(buildSitemap(listSurfSpots()), "application/xml; charset=utf-8");
+      }
+      if (request.method === "GET" && url.pathname === "/llms.txt") {
+        return response.text(buildLlmsText());
+      }
+      if (request.method === "GET" && url.pathname === "/favicon.ico") {
+        return response.redirect("/surfsd-logo.png", 302);
+      }
+
+      // Only serve public files we expect, like CSS, JavaScript, images, and uploads.
       if (
         url.pathname.startsWith("/uploads/") ||
         url.pathname.startsWith("/spot-images/") ||
@@ -41,8 +73,10 @@ export function createApp(options = {}) {
         if (serveStatic(request, response)) return;
       }
 
+      // Public pages anyone can view.
       if (request.method === "GET" && url.pathname === "/") return response.html(homePage({ user: request.user, reports: listRecentReports(8) }));
       if (request.method === "GET" && url.pathname === "/about") return response.html(aboutPage({ user: request.user }));
+      if (request.method === "GET" && url.pathname === "/privacy") return response.html(privacyPage({ user: request.user }));
       if (request.method === "GET" && url.pathname === "/community") return response.html(communityPage({ user: request.user, reports: listRecentReports(24) }));
       if (request.method === "GET" && url.pathname === "/map") {
         // The map has one general San Diego conditions box. We use a known spot
@@ -63,14 +97,16 @@ export function createApp(options = {}) {
         }));
       }
 
+      // Account actions and public profile pages.
       if (request.method === "POST" && url.pathname === "/signup") return await handleSignup(request, response);
       if (request.method === "POST" && url.pathname === "/login") return await handleLogin(request, response);
       if (request.method === "POST" && url.pathname === "/account/username") return await handleChangeUsername(request, response);
       if (request.method === "POST" && url.pathname === "/account/password") return await handleResetPassword(request, response);
-      if (request.method === "POST" && url.pathname === "/account/avatar") return await handleUpdateAvatar(request, response);
-      if (request.method === "POST" && url.pathname === "/account/avatar/remove") return handleRemoveAvatar(request, response);
+      if (request.method === "POST" && url.pathname === "/account/avatar") return await handleUpdateAvatar(request, response, uploadDir);
+      if (request.method === "POST" && url.pathname === "/account/avatar/remove") return handleRemoveAvatar(request, response, uploadDir);
       const profileMatch = url.pathname.match(/^\/users\/(\d+)$/);
       if (request.method === "GET" && profileMatch) return handleProfilePage(request, response, profileMatch[1]);
+      // Report and comment actions use the number from the URL as the database ID.
       const editReportMatch = url.pathname.match(/^\/reports\/(\d+)\/edit$/);
       if (request.method === "GET" && editReportMatch) return handleEditReportPage(request, response, editReportMatch[1]);
       if (request.method === "POST" && editReportMatch) return await handleUpdateReport(request, response, editReportMatch[1]);
@@ -79,12 +115,13 @@ export function createApp(options = {}) {
       const deleteCommentMatch = url.pathname.match(/^\/comments\/(\d+)\/delete$/);
       if (request.method === "POST" && deleteCommentMatch) return await handleDeleteComment(request, response, deleteCommentMatch[1]);
       const deleteReportMatch = url.pathname.match(/^\/reports\/(\d+)\/delete$/);
-      if (request.method === "POST" && deleteReportMatch) return handleDeleteReport(request, response, deleteReportMatch[1]);
+      if (request.method === "POST" && deleteReportMatch) return handleDeleteReport(request, response, deleteReportMatch[1], uploadDir);
       if (request.method === "GET" && url.pathname === "/logout") {
         destroySession(request, response);
         return response.redirect("/account");
       }
 
+      // Surf spot pages and their create-report forms.
       const spotMatch = url.pathname.match(/^\/spots\/([^/]+)$/);
       if (request.method === "GET" && spotMatch) return await handleSpotPage(request, response, spotMatch[1], conditionsProvider, url.searchParams.get("error") || "");
 
@@ -92,7 +129,7 @@ export function createApp(options = {}) {
       if (request.method === "GET" && newReportMatch) return handleNewReport(request, response, newReportMatch[1]);
 
       const createReportMatch = url.pathname.match(/^\/spots\/([^/]+)\/reports$/);
-      if (request.method === "POST" && createReportMatch) return await handleCreateReport(request, response, createReportMatch[1]);
+      if (request.method === "POST" && createReportMatch) return await handleCreateReport(request, response, createReportMatch[1], uploadDir);
 
       response.notFound();
     } catch (error) {
@@ -102,17 +139,18 @@ export function createApp(options = {}) {
         response.html(accountPage({ user: request.user, error: "Request body is too large." }), 413);
         return;
       }
-      response.html(`<h1>Something Went Wrong</h1><p>${error.message}</p>`, 500);
+      console.error("SurfSD request failed:", error);
+      response.html(errorPage({ user: request.user }), 500);
     }
   });
 }
 
 // Saves a small profile photo for the logged-in account.
-async function handleUpdateAvatar(request, response) {
+async function handleUpdateAvatar(request, response, uploadDir) {
   if (!requireUser(request, response)) return;
   let upload;
   try {
-    upload = await readProfileImageForm(request);
+    upload = await readProfileImageForm(request, { uploadDir });
   } catch (error) {
     if (error.message === "Request body is too large.") {
       return response.redirect(`/account?error=${encodeURIComponent("Profile photo must be 5 MB or smaller.")}`);
@@ -122,13 +160,17 @@ async function handleUpdateAvatar(request, response) {
 
   if (upload.errors.length) return response.redirect(`/account?error=${encodeURIComponent(upload.errors.join(" "))}`);
   if (!upload.file) return response.redirect(`/account?error=${encodeURIComponent("Choose a profile photo to upload.")}`);
+  const oldAvatarUrl = request.user.avatarUrl;
   updateUserAvatar(request.user.id, upload.file.imageUrl);
+  if (oldAvatarUrl !== upload.file.imageUrl) deleteUploadedFile(oldAvatarUrl, uploadDir);
   response.redirect("/account?message=Profile Photo Updated");
 }
 
-function handleRemoveAvatar(request, response) {
+function handleRemoveAvatar(request, response, uploadDir) {
   if (!requireUser(request, response)) return;
+  const oldAvatarUrl = request.user.avatarUrl;
   updateUserAvatar(request.user.id, null);
+  deleteUploadedFile(oldAvatarUrl, uploadDir);
   response.redirect("/account?message=Profile Photo Removed");
 }
 
@@ -197,12 +239,17 @@ async function handleResetPassword(request, response) {
 }
 
 // Deletes a report only if the logged-in user owns it.
-function handleDeleteReport(request, response, reportId) {
+function handleDeleteReport(request, response, reportId, uploadDir) {
   if (!requireUser(request, response)) return;
+  const report = findReportForUser(Number(reportId), request.user.id);
+  if (!report) {
+    return response.redirect("/account?error=Report could not be deleted.");
+  }
   const deleted = deleteReportForUser(Number(reportId), request.user.id);
   if (!deleted) {
     return response.redirect("/account?error=Report could not be deleted.");
   }
+  deleteUploadedFile(report.imageUrl, uploadDir);
   response.redirect("/account?message=Report Deleted");
 }
 
@@ -306,7 +353,7 @@ function handleNewReport(request, response, slug) {
 }
 
 // Reads the report form, checks the inputs, then saves the report.
-async function handleCreateReport(request, response, slug) {
+async function handleCreateReport(request, response, slug, uploadDir) {
   if (!requireUser(request, response)) return;
   const spot = findSurfSpotBySlug(slug);
   if (!spot) return response.notFound();
@@ -314,7 +361,7 @@ async function handleCreateReport(request, response, slug) {
   let upload;
   try {
     // This reads both the regular form fields and the optional video upload.
-    upload = await readMultipartForm(request);
+    upload = await readMultipartForm(request, { uploadDir });
   } catch (error) {
     if (error.message === "Request body is too large.") {
       return response.html(reportFormPage({
@@ -325,9 +372,12 @@ async function handleCreateReport(request, response, slug) {
     }
     throw error;
   }
-  const validation = validateReport({ ...upload.fields, file: upload.file });
+  const validation = validateReport(upload.fields);
   const errors = [...upload.errors, ...validation.errors];
   if (errors.length) {
+    // The file was written before the text fields were validated, so remove it
+    // when the rest of the form is rejected.
+    deleteUploadedFile(upload.file?.imageUrl, uploadDir);
     return response.html(reportFormPage({
       user: request.user,
       spot,
@@ -336,14 +386,19 @@ async function handleCreateReport(request, response, slug) {
     }), 422);
   }
 
-  createReport({
-    surfSpotId: spot.id,
-    userId: request.user.id,
-    imageUrl: upload.file?.imageUrl || null,
-    description: validation.values.description,
-    waveHeight: validation.values.waveHeight,
-    rating: validation.values.rating
-  });
+  try {
+    createReport({
+      surfSpotId: spot.id,
+      userId: request.user.id,
+      imageUrl: upload.file?.imageUrl || null,
+      description: validation.values.description,
+      waveHeight: validation.values.waveHeight,
+      rating: validation.values.rating
+    });
+  } catch (error) {
+    deleteUploadedFile(upload.file?.imageUrl, uploadDir);
+    throw error;
+  }
 
   response.redirect(`/spots/${spot.slug}`);
 }
@@ -358,6 +413,24 @@ function addSecurityHeaders(response) {
     "Content-Security-Policy",
     "default-src 'self'; img-src 'self' https://images.unsplash.com https://*.tile.openstreetmap.org data:; style-src 'self' https://unpkg.com 'unsafe-inline'; script-src 'self' https://unpkg.com; connect-src 'self';"
   );
+}
+
+function buildRobotsText() {
+  return `User-agent: *\nAllow: /\nDisallow: /account\nDisallow: /reports/\nSitemap: ${config.siteUrl}/sitemap.xml\n`;
+}
+
+function buildSitemap(spots) {
+  const pages = ["/", "/map", "/community", "/about", "/privacy", ...spots.map((spot) => `/spots/${spot.slug}`)];
+  const urls = pages.map((pathname) => `  <url><loc>${escapeXml(`${config.siteUrl}${pathname}`)}</loc></url>`).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+}
+
+function buildLlmsText() {
+  return `# SurfSD\n\nSurfSD is a community-driven San Diego surf reporting platform. Surfers can explore local breaks, review live conditions, publish firsthand reports, and discuss those reports.\n\n## Public Pages\n- ${config.siteUrl}/map — Live surf spot map and newest reports\n- ${config.siteUrl}/community — Community report feed\n- ${config.siteUrl}/about — About SurfSD\n- ${config.siteUrl}/privacy — Privacy information\n`;
+}
+
+function escapeXml(value) {
+  return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&apos;");
 }
 
 // Reports are editable for 3 hours after creation.

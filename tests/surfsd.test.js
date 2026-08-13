@@ -9,10 +9,16 @@ import { formatCurrentTide } from "../src/conditions.js";
 import { closeDatabase, findSurfSpotBySlug, findUserByEmail, getDatabase } from "../src/db.js";
 import { resetSessions } from "../src/session.js";
 
+// Creates an isolated HTTP client, database, and upload directory for each test.
+// Requests run directly against the Node server without browser overhead.
 function createTestClient() {
   const databasePath = path.join(os.tmpdir(), `surfsd-${Date.now()}-${Math.random()}.sqlite`);
+  // Each test gets a throwaway upload folder. This keeps fake photos and videos
+  // out of public/uploads and removes the whole folder during cleanup.
+  const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), "surfsd-uploads-"));
   const app = createApp({
     databasePath,
+    uploadDir,
     conditionsProvider: async () => ({
       swell: "Test swell",
       tide: "Test tide",
@@ -73,6 +79,7 @@ function createTestClient() {
   }
 
   return {
+    uploadDir,
     get: (pathname) => request("GET", pathname),
     postForm: (pathname, data) => request("POST", pathname, {
       body: new URLSearchParams(data),
@@ -99,6 +106,7 @@ function createTestClient() {
       closeDatabase();
       resetSessions();
       if (fs.existsSync(databasePath)) fs.unlinkSync(databasePath);
+      fs.rmSync(uploadDir, { recursive: true, force: true });
     }
   };
 }
@@ -251,7 +259,7 @@ test("users can upload and remove a profile photo", async () => {
 
     const storedUser = findUserByEmail("photo-surfer@example.com");
     assert.match(storedUser.avatarUrl, /^\/uploads\/.+\.png$/);
-    uploadedPath = path.join(process.cwd(), "public", storedUser.avatarUrl.replace(/^\//, ""));
+    uploadedPath = path.join(client.uploadDir || "", path.basename(storedUser.avatarUrl));
 
     const profile = await client.get(`/users/${storedUser.id}`);
     assert.match(profile.text, new RegExp(storedUser.avatarUrl.replaceAll("/", "\\/")));
@@ -259,8 +267,8 @@ test("users can upload and remove a profile photo", async () => {
     const removed = await client.postForm("/account/avatar/remove", {});
     assert.equal(removed.response.headers.get("location"), "/account?message=Profile Photo Removed");
     assert.equal(findUserByEmail("photo-surfer@example.com").avatarUrl, null);
+    assert.equal(fs.existsSync(uploadedPath), false);
   } finally {
-    if (uploadedPath && fs.existsSync(uploadedPath)) fs.unlinkSync(uploadedPath);
     await client.cleanup();
   }
 });
@@ -275,17 +283,25 @@ test("users can delete their own reports", async () => {
       next: "/account"
     });
 
+    const mp4 = Buffer.from("00000018667479706d703432000000006d703432", "hex");
     await client.postMultipart("/spots/swamis/reports", {
       description: "Delete this report.",
       waveHeight: "4",
       rating: "7"
+    }, {
+      filename: "delete-report.mp4",
+      type: "video/mp4",
+      body: mp4
     });
 
     const report = getDatabase().prepare("SELECT * FROM reports").get();
+    const uploadedPath = path.join(client.uploadDir || "", path.basename(report.imageUrl));
+    assert.equal(fs.existsSync(uploadedPath), true);
     const deleted = await client.postForm(`/reports/${report.id}/delete`, {});
     assert.equal(deleted.response.status, 303);
     assert.equal(deleted.response.headers.get("location"), "/account?message=Report Deleted");
     assert.equal(getDatabase().prepare("SELECT COUNT(*) AS count FROM reports").get().count, 0);
+    assert.equal(fs.existsSync(uploadedPath), false);
 
     const account = await client.get("/account");
     assert.match(account.text, /No reports yet/);
@@ -808,6 +824,61 @@ test("map conditions show a live timestamp", async () => {
     assert.match(text, /placeholder="Search Surf Spots"/);
     assert.doesNotMatch(text, /data-map-spot-preview/);
     assert.doesNotMatch(text, /class="map-live-pill"/);
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("public pages include launch metadata and one primary heading", async () => {
+  const client = createTestClient();
+  try {
+    for (const pathname of ["/", "/map", "/community", "/about", "/spots/swamis"]) {
+      const { response, text } = await client.get(pathname);
+      assert.equal(response.status, 200);
+      assert.match(text, /<html lang="en">/);
+      assert.match(text, /<meta name="description" content="[^"]+">/);
+      assert.match(text, /<link rel="canonical" href="[^"]+">/);
+      assert.match(text, /<link rel="icon" type="image\/png" href="\/surfsd-logo\.png">/);
+      assert.match(text, /<meta property="og:image" content="[^"]+">/);
+      assert.match(text, /<script type="application\/ld\+json">/);
+      assert.equal((text.match(/<h1(?:\s|>)/g) || []).length, 1);
+    }
+  } finally {
+    await client.cleanup();
+  }
+});
+
+test("crawler files, privacy page, favicon, and custom 404 are available", async () => {
+  const client = createTestClient();
+  try {
+    const robots = await client.get("/robots.txt");
+    assert.equal(robots.response.status, 200);
+    assert.match(robots.response.headers.get("content-type"), /text\/plain/);
+    assert.match(robots.text, /User-agent: \*/);
+    assert.match(robots.text, /Sitemap: .*\/sitemap\.xml/);
+
+    const sitemap = await client.get("/sitemap.xml");
+    assert.equal(sitemap.response.status, 200);
+    assert.match(sitemap.response.headers.get("content-type"), /application\/xml/);
+    assert.match(sitemap.text, /<loc>.*\/spots\/swamis<\/loc>/);
+
+    const llms = await client.get("/llms.txt");
+    assert.equal(llms.response.status, 200);
+    assert.match(llms.text, /# SurfSD/);
+
+    const privacy = await client.get("/privacy");
+    assert.equal(privacy.response.status, 200);
+    assert.match(privacy.text, /Privacy at SurfSD/);
+    assert.match(privacy.text, /does not sell personal information/);
+
+    const favicon = await client.get("/favicon.ico");
+    assert.equal(favicon.response.status, 302);
+    assert.equal(favicon.response.headers.get("location"), "/surfsd-logo.png");
+
+    const missing = await client.get("/definitely-not-a-real-page");
+    assert.equal(missing.response.status, 404);
+    assert.match(missing.text, /That Page Wasn’t Found/);
+    assert.match(missing.text, /noindex, follow/);
   } finally {
     await client.cleanup();
   }
